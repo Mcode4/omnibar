@@ -3,4 +3,4 @@ This project is open source and community driven. The core will always remain op
 
 > See the [roadmap](docs/ROADMAP.md) for future updates
 
-# Omnibar
+# OmniManager

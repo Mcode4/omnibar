@@ -14,7 +14,6 @@ Planned:
 - Rule-based command parsing
 - Application launching
 - Local file search
-- KDE Plasma taskbar widget
 - Flatpak packaging
 - Local configuration storage
 
