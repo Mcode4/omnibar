@@ -68,7 +68,6 @@ class SystemDatabase:
             CREATE TABLE IF NOT EXISTS chats (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
-                model TEXT DEFAULT 'default',
                 system_prompt TEXT,
                 temperature REAL DEFAULT 0.7,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

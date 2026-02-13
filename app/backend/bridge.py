@@ -1,9 +1,9 @@
 from PySide6.QtCore import QObject, Slot, Signal, QThread
-from backend.command_router import CommandRouter
+from app.backend.router.command_router import CommandRouter
 import os
 import json
 
-class Worker(QObject):
+class SearchWorker(QObject):
     finished = Signal(str)
     started = Signal()
 
@@ -43,34 +43,28 @@ class Worker(QObject):
 
 
 class BackendBridge(QObject):
-    resultReady = Signal(str)
-    # listResultsReady = Signal(str)
-    commandStarted = Signal()
-
+    searchResults = Signal(str)
+    searchCommandStarted = Signal()
+    searchSignal = Signal(str)
 
     def __init__(self):
         super().__init__()
-        self.thread = QThread()
-        self.worker = Worker()
+        self.search_thread = QThread()
+        self.search_worker = SearchWorker()
 
-        self.worker.moveToThread(self.thread)
-        self.worker.finished.connect(self.resultReady)
-        self.worker.started.connect(self.commandStarted)
+        self.search_worker.moveToThread(self.search_thread)
 
-        self.thread.start()
-    
+        # connect signals
+        self.searchSignal.connect(self.search_worker.process)
+        self.search_worker.finished.connect(self.searchResults)
+        self.search_worker.started.connect(self.searchCommandStarted)
+
+        self.search_thread.start()
 
     @Slot(str)
-    def processCommand(self, text):
+    def processSearchCommand(self, text):
         text = text.strip()
         print(f"Command received from UI: {text}")
+        self.searchSignal.emit(text)
+        
 
-        # if text.startswith("search"):
-        #     self.start_file_search(text)
-        # else:
-        self.worker.process(text)
-
-    # def start_file_search(self, query: str):
-    #     self.search_thread = FileSearchWorker(query)
-    #     self.search_thread.resultsReady.connect(self.listResultsReady)
-    #     self.search_thread.start()

@@ -1,16 +1,16 @@
 import subprocess
 import json
 
-class local_model:
+class LocalModel:
 
-    def get_available_models():
+    def get_available_models(self):
         result = subprocess.run(
             ["ollama", "list"],
             stdout=subprocess.PIPE
         )
 
         lines = result.stdout.decode().splitlines()[1:]
-        return [line.split[0] for line in lines]
+        return [line.split()[0] for line in lines]
 
     def generate(self, model: str, system_prompt: str, messages: list, temperature: float = 0.7):
         prompt = self.build_prompt(system_prompt, messages)

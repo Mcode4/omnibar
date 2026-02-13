@@ -115,6 +115,17 @@ class UserDatabase:
             value TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+                             
+        CREATE TABLE IF NOT EXISTS note_chunks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            note_id INTEGER,
+            chunk_index INTEGER,
+            content TEXT,
+            embedding BLOB,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
+        );
+
         """)
 
         self.conn.commit()
