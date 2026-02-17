@@ -26,7 +26,6 @@ env/
 Thumbs.db
 
 models/
-db/
+*.db
 achievements.md
 ~/*
-app/dev_runner.py
