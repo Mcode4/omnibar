@@ -3,15 +3,9 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "components"
 
-ApplicationWindow {
-    id: root
-    visible: true
-    width: 1000
-    height: 600
-
-    title: "OmniManager"
-    font.family: "Segoe UI, Noto Color Emoji, Arial"
-    font.pixelSize:  14
+Item {
+    id: devRoot
+    anchors.fill: parent
 
     property int currentPage: 0
     property bool sidebarVisible: true
@@ -33,11 +27,10 @@ ApplicationWindow {
                 Repeater {
                     model: [
                         { icon: "Icons/chat.svg" },
-                        { icon: "Icons/files.svg" },
-                        { icon: "Icons/database.svg" },
                         { icon: "Icons/notebook.svg" },
-                        { icon: "Icons/settings.svg" },
-                        { icon: "Icons/logs.svg" }
+                        { icon: "Icons/database.svg" },
+                        { icon: "Icons/logs.svg" },
+                        { icon: "Icons/settings.svg" }
                     ]
 
                     delegate: SidebarButton {
@@ -74,23 +67,14 @@ ApplicationWindow {
                 source: {
                     switch (currentPage) {
                         case 0: return "pages/Chat/ChatSidebar.qml"
-                        case 1: return "pages/Files/FilesSidebar.qml"
+                        case 1: return "pages/Notes/NotesSidebar.qml"
                         case 2: return "pages/Database/DatabaseSidebar.qml"
-                        case 3: return "pages/Notes/NotesSidebar.qml"
+                        case 3: return "pages/Logs/LogsSidebar.qml"
                         case 4: return "pages/Settings/SettingsSidebar.qml"
-                        case 5: return "pages/Logs/LogsSidebar.qml"
                     }
                 }
                 onLoaded: {
-                    if (!item) return
-
-                    if (item.chatSelected) {
-                        item.chatSelected.connect(function(id) {
-                            if (!mainLoader.item) return
-                            if (mainLoader.item.loadMessages)
-                                mainLoader.item.loadMessages(id)
-                        })
-                    }
+                    console.log("loaded")
                 }
 
             }
@@ -104,11 +88,10 @@ ApplicationWindow {
             source: {
                 switch (currentPage) {
                     case 0: return "pages/Chat/ChatPage.qml"
-                    case 1: return "pages/Files/FilesPage.qml"
+                    case 1: return "pages/Notes/NotesPage.qml"
                     case 2: return "pages/Database/DatabasePage.qml"
-                    case 3: return "pages/Notes/NotesPage.qml"
+                    case 3: return "pages/Logs/LogsPage.qml"
                     case 4: return "pages/Settings/SettingsPage.qml"
-                    case 5: return "pages/Logs/LogsPage.qml"
                 }
             }
         }

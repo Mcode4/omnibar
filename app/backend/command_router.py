@@ -1,6 +1,5 @@
 from backend.tools.search_files import search_files
 from backend.tools.discover_apps import find_app
-from backend.db.system_db import SystemDatabase
 
 class CommandRouter:
     def __init__(self):

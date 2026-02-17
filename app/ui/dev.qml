@@ -29,8 +29,8 @@ Item {
                         { icon: "Icons/chat.svg" },
                         { icon: "Icons/notebook.svg" },
                         { icon: "Icons/database.svg" },
-                        { icon: "Icons/settings.svg" },
-                        { icon: "Icons/logs.svg" }
+                        { icon: "Icons/logs.svg" },
+                        { icon: "Icons/settings.svg" }
                     ]
 
                     delegate: SidebarButton {
@@ -74,15 +74,7 @@ Item {
                     }
                 }
                 onLoaded: {
-                    if (!item) return
-
-                    if (item.chatSelected) {
-                        item.chatSelected.connect(function(id) {
-                            if (!mainLoader.item) return
-                            if (mainLoader.item.loadMessages)
-                                mainLoader.item.loadMessages(id)
-                        })
-                    }
+                    console.log("loaded")
                 }
 
             }

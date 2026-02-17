@@ -2,8 +2,8 @@ import threading
 from backend.ai.llm_engine import LLMEngine
 from backend.ai.rag_pipeline import RAGPipeline
 from backend.settings import Settings
-from backend.db.system_db import SystemDatabase
-from backend.db.user_db import UserDatabase
+from backend.databases.system_db import SystemDatabase
+from backend.databases.user_db import UserDatabase
 
 class Orchestrator:
     def __init__(self, llm_engine: LLMEngine, rag_pipeline: RAGPipeline, settings: Settings, system_db: SystemDatabase, user_db: UserDatabase):
@@ -68,14 +68,15 @@ class Orchestrator:
     # ============================================================
     #                    PROMPT TO AI
     # ============================================================
-    def _fast_flow(self, messages: list, system_prompt="You are a helpful assistant"):
+    def _fast_flow(self, messages: list, system_prompt="You are a helpful assistant", source="chat"):
         self.llm.generate(
             model_name="instruct",
             messages=messages,
-            system_prompt=system_prompt
+            system_prompt=system_prompt,
+            source=source
         )
     
-    def _thinking_flow(self, messages: list, system_prompt: str = "Think step by step before answering", system_prompt2: str = "Provide a clear structure answer."):
+    def _thinking_flow(self, messages: list, system_prompt: str = "Think step by step before answering", system_prompt2: str = "Provide a clear structure answer.", source="chat"):
         self._pending_messages = messages
         self._final_system_prompt = system_prompt2
         
@@ -83,7 +84,8 @@ class Orchestrator:
             model_name="thinking",
             messages=messages,
             system_prompt=system_prompt,
-            phase="thinking"
+            phase="thinking",
+            source=source
         )
 
     # ============================================================

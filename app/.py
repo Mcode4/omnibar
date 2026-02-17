@@ -99,8 +99,8 @@ def create_backend():
 
     # --- Fresh imports (works because sys.modules was purged) ---
     from backend.bridge import BackendBridge
-    from backend.db.user_db import UserDatabase as Database
-    from backend.db.system_db import SystemDatabase
+    from backend.databases.user_db import UserDatabase as Database
+    from backend.databases.system_db import SystemDatabase
     from backend.ai.model_manager import ModelManager
     from backend.settings import Settings
     from backend.ai.llm_engine import LLMEngine

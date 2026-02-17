@@ -84,6 +84,7 @@ class BackendBridge(QObject):
         self.ai_worker.tokenGenerated.connect(self.aiToken)
 
         chat_service.messageFinished.connect(self._on_ai_finished)
+        chat_service.chatMessageCreated.connect(self.newChatCreated)
 
         # ================== START THREADS ==================
         self.system_thread.start()
@@ -148,12 +149,9 @@ class BackendBridge(QObject):
             self.aiSignal.emit(next_task)
         
     def _on_ai_finished(self, results):
-        print("AI FINISHED SIGNAL RECEIVED")
+        print("\n\nAI FINISHED SIGNAL RECEIVED\n\n")
         self.current_tasks["ai"] -= 1
         print(f"\n\nPrompt Complete: {results}")
-
-        if results.get("chat_id"):
-            self.newChatCreated.emit()
         
         self.aiResults.emit({
             "chat_id": int(results.get("chat_id", "")),
@@ -174,9 +172,8 @@ class BackendBridge(QObject):
     @Slot(int, result="QVariantList")
     def getMessages(self, chat_id):
         messages = self.ai_worker.chat_service.system_db.get_messages_by_chat(chat_id)
-        # print("MESSAGES BRIDGE", messages)
+        print("MESSAGES BRIDGE", messages)
         self.messagesLoaded.emit(messages if messages else [])
-
 
     
 

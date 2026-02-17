@@ -31,7 +31,7 @@ ColumnLayout {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    console.log("Clicked, index", index)
+                    // console.log("Clicked, index", index)
                     loadMessages(index)
                     chatList.currentIndex = index
                     root.chatSelected(model.id)
@@ -51,7 +51,7 @@ ColumnLayout {
 
     function loadMessages(id) {
         let messages = backend.getMessages(id)
-        console.log("MESSAGES RETURNED:", messages)
+        // console.log("MESSAGES RETURNED:", messages)
     }
 
     Connections {

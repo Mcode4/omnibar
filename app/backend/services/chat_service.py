@@ -1,12 +1,13 @@
 from PySide6.QtCore import Signal, QObject
 import threading
-from backend.db.system_db import SystemDatabase
-from backend.db.user_db import UserDatabase
+from backend.databases.system_db import SystemDatabase
+from backend.databases.user_db import UserDatabase
 from backend.ai.orchestrator import Orchestrator
 
 class ChatService(QObject):
     tokenGenerated = Signal(str, str)
     messageFinished = Signal(dict)
+    chatMessageCreated = Signal()
 
     def __init__(self, system_db: SystemDatabase, user_db: UserDatabase, orchestrator: Orchestrator):
         super().__init__()
@@ -33,6 +34,7 @@ class ChatService(QObject):
             
 
         user_msg_id = self.system_db.create_message(chat_id, "user", prompt)
+        self.chatMessageCreated.emit()
         user_msg = self.system_db.get_message_by_id(user_msg_id)
         self.chat_cache[chat_id].append(user_msg)
         self._current_chat_id = chat_id
@@ -51,21 +53,23 @@ class ChatService(QObject):
     # ============================================================
     def _generate_title_async(self, messages, chat_id):
         def worker():
-            results = self.orchestrator.llm.generate(
+            self.orchestrator.llm.generate(
                 model_name="instruct",
                 messages=messages,
                 system_prompt="""
                     In 5-20 words, create a summary of the chat so for.
                     Add emoji(s) to the front of summary that best fit summary 
-                """
+                """,
+                source="title"
             )
-
+        def on_title_results(results):
             if results["success"]:
                 self.system_db.edit_chat_title(results["text"], chat_id)
             else:
                 print(f"Failed to generate title: {results["error"]}")
-            
+        
         threading.Thread(target=worker, daemon=True).start()
+        self.orchestrator.llm.titleSignal.connect(on_title_results)
 
     def _maybe_summarize(self, messages, chat_id):
         max_messages = self.orchestrator.settings.get_settings().get("max_messages", 12)
@@ -76,34 +80,37 @@ class ChatService(QObject):
         
         def worker():
             if(summarize):
-                results = self.orchestrator.llm.generate(
+                self.orchestrator.llm.generate(
                     model_name="instruct",
                     messages=messages,
                     system_prompt="""
                         Summarize this conversation clearly and concisely.
                         Preserve key decisions, facts, and context.
-                    """
+                    """,
+                    source="summary"
                 )
-                if(results["success"]):
-                    summarized_text = results["text"]
+        def on_summary_results(results):
+            if(results["success"]):
+                summarized_text = results["text"]
 
-                    self.chat_cache[chat_id] = [{
-                        "role": "system",
-                        "content": summarized_text
-                    }]
+                self.chat_cache[chat_id] = [{
+                    "role": "system",
+                    "content": summarized_text
+                }]
 
-                    summary_embedding = self.orchestrator.rag.embedding_engine.embed(summarized_text)[0]
-                    self.user_db.add_memory_with_embedding(
-                        type_="conversation_summary",
-                        category="chat",
-                        content="chat",
-                        embedding=summary_embedding,
-                        importance=2
-                    )
-                else:
-                    print(f"Summary failed: {summarize["error"]}")
+                summary_embedding = self.orchestrator.rag.embedding_engine.embed(summarized_text)[0]
+                self.user_db.add_memory_with_embedding(
+                    type_="conversation_summary",
+                    category="chat",
+                    content="chat",
+                    embedding=summary_embedding,
+                    importance=2
+                )
+            else:
+                print(f"Summary failed: {summarize["error"]}")
 
         threading.Thread(target=worker, daemon=True).start()
+        self.orchestrator.llm.summarySignal.connect(on_summary_results)
 
     # ============================================================
     #                    TOKEN HANDLING FOR STREAMING

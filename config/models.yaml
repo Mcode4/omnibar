@@ -6,8 +6,8 @@ system:
   #   user:   ~/.local/share/omnimanager/user.db
 
 databases:
-  system: app/backend/app_db/system.db
-  user:   app/backend/app_db/user.db
+  system: app/backend/app_data/system.db
+  user:   app/backend/app_data/user.db
 
 models:
   - name: instruct

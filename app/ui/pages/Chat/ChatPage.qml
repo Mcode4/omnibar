@@ -101,6 +101,11 @@ ColumnLayout {
         inputField.text = ""
     }
 
+    function loadMessages(id) {
+        let messages = backend.getMessages(id)
+        // console.log("MESSAGES RETURNED:", messages)
+    }
+
     // Backend Connections
     Connections {
         target: backend
@@ -127,7 +132,6 @@ ColumnLayout {
             }
 
             let current = messageModel.get(streamingIndex)
-            
             messageModel.set(streamingIndex, {
                 role: "Omni",
                 content: current.content + token
@@ -135,8 +139,6 @@ ColumnLayout {
         }
 
         function onAiResults(result) {
-           console.log("RESULT:", result)
-
            isThinking = false
            isProcessing = false
 
@@ -147,10 +149,6 @@ ColumnLayout {
                     content: result.text
                 })
             } 
-
-            if (result.chat_id && result.chat_id !== chatId)  {
-                chatId = result.chat_id
-            }
            } else {
             messageModel.append({
                 role: "Omni",
@@ -161,11 +159,15 @@ ColumnLayout {
         }
 
         function onMessagesLoaded(messages) {
-            // if (messageModel.count !== 0) return
-            console.log("MESSAGE RESULTS", messages)
+            messageModel.clear()
+            // console.log("MESSAGE RESULTS", messages)
+
+            if(messages.length && messages[0].chat_id) {
+                chatId = messages[0].chat_id
+            }
 
             messages.forEach(m => {
-                console.log("MESSAGEEEEEE", m)
+                // console.log("MESSAGEEEEEE", m)
                 messageModel.append({
                     role: m.role === "user" ? "You" : "Omni",
                     content: m.content

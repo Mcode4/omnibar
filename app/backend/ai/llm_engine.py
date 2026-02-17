@@ -5,30 +5,44 @@ from backend.settings import Settings
 class LLMEngine(QObject):
     token_generated = Signal(str, str)
     generation_finished = Signal(str, dict)
+    titleSignal = Signal(dict)
+    summarySignal = Signal(dict)
 
     def __init__(self, model_manager: ModelManager, settings: Settings):
         super().__init__()
         self.model_manager = model_manager
         self.settings = settings
 
-    def generate(self, model_name: str, messages: list, system_prompt: str, phase="instruct"):
+    def generate(self, model_name: str, messages: list, system_prompt: str, source: str, phase="instruct"):
         model = self.model_manager.get_model(model_name)
 
         if not model:
-            self.generation_finished.emit(phase, {
-                "success": False, 
-                "error": "Model not loaded"
-            })
+            if source == "chat":
+                self.generation_finished.emit(phase, {
+                    "success": False, 
+                    "error": "Model not loaded"
+                })
+            elif source == "title":
+                self.titleSignal.emit({
+                    "success": False, 
+                    "error": "Model not loaded"
+                })
+            elif source == "summary":
+                self.summarySignal.emit({
+                    "success": False, 
+                    "error": "Model not loaded"
+                })
+            else:
+                print("Model not loaded from unknown source: ", source)
             return
         
         model_settings = self.settings.get_settings()["model_settings"].get(model_name, {})
         generate_settings = self.settings.get_settings()["generate_settings"]
-        max_context = model_settings.get("max_context", 512)
         use_stream = generate_settings.get("streamer", True)
         try:
             model.reset()
             # self.model_manager.reload_model(model_name, n_ctx=max_context)
-            if use_stream:
+            if use_stream and source == "chat":
                 full_response = ""
 
                 for chunk in model.create_chat_completion(
@@ -77,5 +91,12 @@ class LLMEngine(QObject):
                 "success": False,
                 "error": str(e)
             }
-
-        self.generation_finished.emit(phase, results)
+        if source == "chat":
+            self.generation_finished.emit(phase, results)
+        elif source == "title":
+            self.titleSignal.emit(results)
+        elif source == "summary":
+            self.summarySignal.emit(results)
+        else:
+            print("UNKNOWN SOURCE: ", source)
+        
