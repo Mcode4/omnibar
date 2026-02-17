@@ -171,10 +171,10 @@ class BackendBridge(QObject):
         chats = self.ai_worker.chat_service.system_db.get_chats()
         return chats if chats else []
     
-    @Slot(int)
+    @Slot(int, result="QVariantList")
     def getMessages(self, chat_id):
         messages = self.ai_worker.chat_service.system_db.get_messages_by_chat(chat_id)
-        print("MESSAGES BRIDGE", messages)
+        # print("MESSAGES BRIDGE", messages)
         self.messagesLoaded.emit(messages if messages else [])
 
 

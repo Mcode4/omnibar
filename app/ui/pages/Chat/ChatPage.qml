@@ -161,13 +161,16 @@ ColumnLayout {
         }
 
         function onMessagesLoaded(messages) {
+            if (messageModel.count !== 0) return
             console.log("MESSAGE RESULTS", messages)
 
-            // messages.forEach(m => {
-            //     messageModel.append({
-            //         role: m.role === ""
-            //     })
-            // })
+            messages.forEach(m => {
+                console.log("MESS", m)
+                messageModel.append({
+                    role: m.role === "user" ? "You" : "Omni",
+                    content: m.content
+                })
+            })
         }
     }
 }

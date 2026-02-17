@@ -27,9 +27,8 @@ Item {
                 Repeater {
                     model: [
                         { icon: "Icons/chat.svg" },
-                        { icon: "Icons/files.svg" },
-                        { icon: "Icons/database.svg" },
                         { icon: "Icons/notebook.svg" },
+                        { icon: "Icons/database.svg" },
                         { icon: "Icons/settings.svg" },
                         { icon: "Icons/logs.svg" }
                     ]
@@ -68,11 +67,10 @@ Item {
                 source: {
                     switch (currentPage) {
                         case 0: return "pages/Chat/ChatSidebar.qml"
-                        case 1: return "pages/Files/FilesSidebar.qml"
+                        case 1: return "pages/Notes/NotesSidebar.qml"
                         case 2: return "pages/Database/DatabaseSidebar.qml"
-                        case 3: return "pages/Notes/NotesSidebar.qml"
+                        case 3: return "pages/Logs/LogsSidebar.qml"
                         case 4: return "pages/Settings/SettingsSidebar.qml"
-                        case 5: return "pages/Logs/LogsSidebar.qml"
                     }
                 }
                 onLoaded: {

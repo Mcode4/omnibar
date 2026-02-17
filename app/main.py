@@ -4,10 +4,12 @@ import yaml
 import importlib
 import argparse
 import time
+import gc
+import pkgutil
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtCore import QFileSystemWatcher, QUrl
+from PySide6.QtCore import QFileSystemWatcher, QUrl, QTimer
 
 from backend.bridge import BackendBridge
 from backend.db.user_db import UserDatabase as Database
@@ -21,9 +23,6 @@ from backend.ai.orchestrator import Orchestrator
 from backend.services.chat_service import ChatService
 from backend.system.device_manager import DeviceManager
 from backend.ai.vision_manager import VisionManager
-import sys
-import importlib
-import pkgutil
 
 # ============================================================
 # ARG PARSER
@@ -90,13 +89,13 @@ if DEV_MODE:
     engine.load(QUrl.fromLocalFile(dev_qml_file))
     if not engine.rootObjects():
         sys.exit(-1)
-    # Grab root QML object (DevRoot)
     root = engine.rootObjects()[0]
 else:
     engine.load(QUrl.fromLocalFile(qml_file))
     if not engine.rootObjects():
         sys.exit(-1)
     root = engine.rootObjects()[0]  # main window
+
 
 # ============================================================
 # BACKEND CREATION
@@ -161,6 +160,7 @@ def create_backend():
 # ============================================================
 create_backend()
 app.aboutToQuit.connect(lambda: bridge.shutdown())
+
 
 # ============================================================
 # DEV MODE FILE WATCHER
@@ -237,7 +237,6 @@ if DEV_MODE:
         import gc
         gc.collect()
 
-
         # Reload backend code
         import backend
         reload_package(backend)
@@ -258,9 +257,9 @@ if DEV_MODE:
         reload_qml()
 
 
-
     watcher.fileChanged.connect(lambda path: reload_backend() if path.endswith(".py") else reload_qml())
     watcher.directoryChanged.connect(lambda path: None)
+
 
 # ============================================================
 # RUN
