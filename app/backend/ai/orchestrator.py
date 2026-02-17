@@ -19,6 +19,9 @@ class Orchestrator:
 
         self.llm.generation_finished.connect(self._handle_generation_finished)
 
+    # ============================================================
+    #                    PROMPT HANDLING
+    # ============================================================
     def need_thinking(self, prompt: str) -> bool:
         trigger_words = [
             "think", "compare", "analyze", "design",
@@ -47,7 +50,7 @@ class Orchestrator:
                 return True
         return False
     
-    def run(self, chat_id: int, prompt: str, cached_history: list):
+    def run(self, prompt: str, cached_history: list):
         messages = []
         for msg in cached_history:
             messages.append({
@@ -61,6 +64,10 @@ class Orchestrator:
         else: 
             return self._fast_flow(messages) 
         
+
+    # ============================================================
+    #                    PROMPT TO AI
+    # ============================================================
     def _fast_flow(self, messages: list, system_prompt="You are a helpful assistant"):
         self.llm.generate(
             model_name="instruct",
@@ -79,6 +86,9 @@ class Orchestrator:
             phase="thinking"
         )
 
+    # ============================================================
+    #                    THINKING PROMPT
+    # ============================================================
     def _handle_generation_finished(self, phase, results):
         if not results["success"]:
             return

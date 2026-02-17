@@ -18,10 +18,8 @@ class SystemWorker(QObject):
     @Slot(str)
     def process(self, text):
         self.started.emit()
-        # print('Process Started')
         result = self.router.route(text)
         self.finished.emit(json.dumps(result))
-        # print(f'Process Finished\n\n RESULTS: {result}')
 
 class AIWorker(QObject):
     started = Signal()
@@ -48,28 +46,34 @@ class BackendBridge(QObject):
 
     aiSignal = Signal(tuple)
     aiStarted = Signal()
-    aiToken = Signal(str, str) # Streaming
+    aiToken = Signal(str, str) # Streaming Listener
     aiResults = Signal(dict)
 
     newChatCreated = Signal()
 
     def __init__(self, current_tasks, settings: Settings, chat_service: ChatService):
         super().__init__()
-        self.system_thread = QThread()
-        self.system_worker = SystemWorker()
-        self.ai_thread = QThread()
-        self.ai_worker = AIWorker(chat_service)
-
-        self.system_queue = deque()
-        self.ai_queue = deque()
-        
+        # ================== VARIABLES ==================
         self.current_tasks = current_tasks
         self.settings = settings
 
+        # ================== QTHREADS ==================
+        self.system_thread = QThread()
+        self.ai_thread = QThread()
+
+        # ================== WORKERS ==================
+        self.system_worker = SystemWorker()
+        self.ai_worker = AIWorker(chat_service)
+
+        # ================== QUEUES ==================
+        self.system_queue = deque()
+        self.ai_queue = deque()
+
+        # ================== WORKER CONNECTIONS ==================
         self.system_worker.moveToThread(self.system_thread)
         self.ai_worker.moveToThread(self.ai_thread)
 
-        # connect signals
+        # ================== SIGNAL CONNECTIONS ==================
         self.systemSignal.connect(self.system_worker.process)
         self.system_worker.started.connect(self.systemStarted)
         self.system_worker.finished.connect(self._on_system_finished)
@@ -80,6 +84,7 @@ class BackendBridge(QObject):
 
         chat_service.messageFinished.connect(self._on_ai_finished)
 
+        # ================== START THREADS ==================
         self.system_thread.start()
         self.ai_thread.start()
 
@@ -89,6 +94,10 @@ class BackendBridge(QObject):
         self.system_thread.quit()
         self.system_thread.wait()
 
+
+    # ============================================================
+    #                    SYSTEM PROCESSES
+    # ============================================================
     @Slot(str)
     def processSystemCommand(self, text: str):
         text = text.strip()
@@ -109,6 +118,9 @@ class BackendBridge(QObject):
         self.systemResults.emit(results)
         self._try_process_next()
 
+    # ============================================================
+    #                      AI PROCESSES
+    # ============================================================
     @Slot(int, str)
     def processAIRequest(self, chat_id: int, prompt: str):
         self.ai_queue.append((chat_id, prompt))
@@ -139,6 +151,9 @@ class BackendBridge(QObject):
         })
         self._try_process_next_ai()
 
+    # ============================================================
+    #                    CHAT DATA-SIGNAL HANDLING
+    # ============================================================
     @Slot(result="QVariantList")
     def getChats(self):
         chats = self.ai_worker.chat_service.system_db.get_chats()

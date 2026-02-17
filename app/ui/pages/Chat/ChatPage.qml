@@ -102,6 +102,8 @@ ColumnLayout {
     }
 
     function loadMessages(id) {
+        if(messageModel.count !== 0) return
+
         chatId = id
         messageModel.clear()
         let messages = backend.getMessages(chatId)
@@ -171,6 +173,7 @@ ColumnLayout {
                 content: "Error: " + result.error
             })
            }
+           streamingIndex = -1
         }
     }
 }

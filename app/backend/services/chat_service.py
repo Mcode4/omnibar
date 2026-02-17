@@ -19,6 +19,9 @@ class ChatService(QObject):
         self.orchestrator.llm.token_generated.connect(self._handle_token)
         self.orchestrator.llm.generation_finished.connect(self._handle_finished)
 
+    # ============================================================
+    #                    PROMPT HANDLING
+    # ============================================================
     def send_message(self, chat_id, prompt):
         if not chat_id or chat_id == 0:
             chat_id = self.system_db.create_chat(prompt[:40])
@@ -41,8 +44,11 @@ class ChatService(QObject):
             "history": history
         })
 
-        self.orchestrator.run(chat_id, prompt, self.chat_cache[chat_id])
-    
+        self.orchestrator.run(prompt, self.chat_cache[chat_id])
+
+    # ============================================================
+    #                    ASSISTING CHAT WITH AI
+    # ============================================================
     def _generate_title_async(self, messages, chat_id):
         def worker():
             results = self.orchestrator.llm.generate(
@@ -60,7 +66,7 @@ class ChatService(QObject):
                 print(f"Failed to generate title: {results["error"]}")
             
         threading.Thread(target=worker, daemon=True).start()
-    
+
     def _maybe_summarize(self, messages, chat_id):
         max_messages = self.orchestrator.settings.get_settings().get("max_messages", 12)
         summarize = self.orchestrator.settings.get_settings().get("summarize_messages", True)
@@ -99,16 +105,15 @@ class ChatService(QObject):
 
         threading.Thread(target=worker, daemon=True).start()
 
-        
-    
-
+    # ============================================================
+    #                    TOKEN HANDLING FOR STREAMING
+    # ============================================================
     def _handle_token(self, phase, token):
         stream_when = self.orchestrator.settings.get_settings()["generate_settings"]["stream_when"]
         stream_thinking = True if stream_when == "both" or stream_when == "thinking" else False
         stream_instruct = True if stream_when == "both" or stream_when == "instruct" else False
 
-        if (phase == "thinking" and stream_thinking) or \
-        (phase == "instruct" and stream_instruct):
+        if (phase == "thinking" and stream_thinking) or (phase == "instruct" and stream_instruct):
             self.tokenGenerated.emit(phase, token)
 
     def _handle_finished(self, phase, results):

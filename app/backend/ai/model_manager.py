@@ -8,6 +8,14 @@ class ModelManager:
         self.active_models = set()
         self.vision_model = vision_manager
 
+    def get_model(self, model_name):
+        if not model_name in self.active_models:
+            return
+        return self.models[model_name]
+
+    # ============================================================
+    #                    MODEL LOADING
+    # ============================================================
     def load_model(self, name: str, path: str, model_type="llama", **kwargs):
         if name in self.models:
             print(f"{name} already loaded")
@@ -43,7 +51,6 @@ class ModelManager:
         path, model_type = self.templates[model_name]
         self.load_model(model_name, path, model_type, **kwargs)
         print("Reload successful")
-
     
     def unload_model(self, name: str):
         # Unload model to free RAM
@@ -51,11 +58,6 @@ class ModelManager:
             del self.models[name]
             self.active_models.discard(name)
             print(f"{name} unloaded")
-
-    def get_model(self, model_name):
-        if not model_name in self.active_models:
-            return
-        return self.models[model_name]
     
     def load_models_from_config(self, config, base_path="models"):
         for m in config.get("models", []):
