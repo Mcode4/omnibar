@@ -3,15 +3,9 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "components"
 
-ApplicationWindow {
-    id: root
-    visible: true
-    width: 1000
-    height: 600
-
-    title: "OmniManager"
-    font.family: "Segoe UI, Noto Color Emoji, Arial"
-    font.pixelSize:  14
+Item {
+    id: devRoot
+    anchors.fill: parent
 
     property int currentPage: 0
     property bool sidebarVisible: true

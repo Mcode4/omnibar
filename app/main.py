@@ -64,6 +64,7 @@ app = QApplication(sys.argv)
 engine = QQmlApplicationEngine()
 
 qml_file = os.path.join(os.path.dirname(__file__), "ui", "main.qml")
+dev_qml_file = os.path.join(os.path.dirname(__file__), "ui", "DevRoot.qml")
 
 # Global references (important for hot reload)
 current_tasks = {"ai": 0, "system": 0}
@@ -80,8 +81,21 @@ chat_service = None
 bridge = None
 
 
+# Load DevRoot first (holds the Loader)
+if DEV_MODE:
+    engine.load(QUrl.fromLocalFile(dev_qml_file))
+    if not engine.rootObjects():
+        sys.exit(-1)
+    # Grab root QML object (DevRoot)
+    root = engine.rootObjects()[0]
+else:
+    engine.load(QUrl.fromLocalFile(qml_file))
+    if not engine.rootObjects():
+        sys.exit(-1)
+    root = engine.rootObjects()[0]  # main window
+
 # ============================================================
-# BACKEND CREATION (Reusable for hot reload)
+# BACKEND CREATION
 # ============================================================
 def create_backend():
     global system_db, db
@@ -133,87 +147,51 @@ def create_backend():
     engine.rootContext().setContextProperty("backend", bridge)
     engine.rootContext().setContextProperty("settings", settings)
 
+    if DEV_MODE and hasattr(root, "reloadMain"):
+        root.reloadMain()
+
     print("✅ Backend ready")
 
-
 # ============================================================
-# QML LOAD / RELOAD
-# ============================================================
-def load_qml():
-    engine.load(QUrl.fromLocalFile(qml_file))
-
-
-def reload_qml():
-    print("🔄 Reloading QML...")
-    engine.clearComponentCache()
-
-    for obj in engine.rootObjects():
-        obj.deleteLater()
-
-    load_qml()
-
-
-# ============================================================
-# BACKEND RELOAD (DEV MODE)
-# ============================================================
-def reload_backend():
-    print("🔄 Reloading backend (no window restart)...")
-
-    # Reload backend package safely
-    import backend
-    importlib.reload(backend)
-
-    create_backend()
-
-
-# ============================================================
-# INITIAL STARTUP
+# INITIAL BACKEND
 # ============================================================
 create_backend()
-load_qml()
-
 app.aboutToQuit.connect(lambda: bridge.shutdown())
-
 
 # ============================================================
 # DEV MODE FILE WATCHER
 # ============================================================
 if DEV_MODE:
-    print("🟢 DEV MODE ENABLED")
-
     watcher = QFileSystemWatcher()
     files_to_watch = []
 
-    project_root = os.path.dirname(os.path.abspath(__file__))
-
-    for root, _, files in os.walk(project_root):
+    for root_dir, _, files in os.walk(os.path.dirname(os.path.abspath(__file__))):
         for f in files:
-            if f.endswith((".py", ".qml")):
-                files_to_watch.append(os.path.join(root, f))
+            if f.endswith((".py", ".qml")) and f not in ("DevRoot.qml",):
+                files_to_watch.append(os.path.join(root_dir, f))
 
     watcher.addPaths(files_to_watch)
 
-    def on_file_changed(path):
-        print(f"⚡ File changed: {path}")
+    def reload_qml():
+        if hasattr(root, "reloadMain"):
+            print("🔄 Reloading main.qml only")
+            root.reloadMain()
 
-        if path.endswith(".py"):
-            reload_backend()
-        elif path.endswith(".qml"):
-            reload_qml()
+    def reload_backend():
+        print("🔄 Reloading backend...")
+        global bridge
+        if bridge:
+            try: bridge.shutdown()
+            except Exception: pass
+        import backend
+        importlib.reload(backend)
+        create_backend()
+        reload_qml()
 
-    watcher.fileChanged.connect(on_file_changed)
-    watcher.directoryChanged.connect(on_file_changed)
-
+    watcher.fileChanged.connect(lambda path: reload_backend() if path.endswith(".py") else reload_qml())
+    watcher.directoryChanged.connect(lambda path: None)
 
 # ============================================================
-# RUN APPLICATION
+# RUN
 # ============================================================
-exit_code = app.exec()
-
-if DEV_MODE:
-    print("🔄 main.py exited (DEV mode)")
-else:
-    if not engine.rootObjects():
-        sys.exit(-1)
-
-    sys.exit(exit_code)
+sys.exit(app.exec())
