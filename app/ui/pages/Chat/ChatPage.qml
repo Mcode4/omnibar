@@ -101,22 +101,6 @@ ColumnLayout {
         inputField.text = ""
     }
 
-    function loadMessages(id) {
-        if(messageModel.count !== 0) return
-
-        chatId = id
-        messageModel.clear()
-        let messages = backend.getMessages(chatId)
-        console.log("MESSAGES RETURNED:", messages)
-
-        for(let i=0; i<messages.length; i++) {
-            messageModel.append({
-                role: messages[i].role === "user" ? "You" : "Omni",
-                content: messages[i].content
-            })
-        }
-    }
-
     // Backend Connections
     Connections {
         target: backend
@@ -174,6 +158,16 @@ ColumnLayout {
             })
            }
            streamingIndex = -1
+        }
+
+        function onMessagesLoaded(messages) {
+            console.log("MESSAGE RESULTS", messages)
+
+            // messages.forEach(m => {
+            //     messageModel.append({
+            //         role: m.role === ""
+            //     })
+            // })
         }
     }
 }

@@ -3,6 +3,7 @@ import os
 import yaml
 import importlib
 import argparse
+import time
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
@@ -20,6 +21,9 @@ from backend.ai.orchestrator import Orchestrator
 from backend.services.chat_service import ChatService
 from backend.system.device_manager import DeviceManager
 from backend.ai.vision_manager import VisionManager
+import sys
+import importlib
+import pkgutil
 
 # ============================================================
 # ARG PARSER
@@ -172,21 +176,88 @@ if DEV_MODE:
 
     watcher.addPaths(files_to_watch)
 
+    # ============================================================
+    # CLEAR/RELOADING OLD FILES
+    # ============================================================
+    def clear_backend():
+        global system_db, db, vision_manager, model_manager, settings
+        global llm_engine, embedding_engine, rag_pipeline
+        global orchestrator, chat_service, bridge
+
+        print("🗑️ Clearing old backend objects...")
+
+        print("\n\nBEFORE CLEAN", {system_db, db, vision_manager, model_manager, settings,
+              llm_engine, embedding_engine, rag_pipeline,
+              orchestrator, chat_service, bridge})
+        if bridge:
+            try: bridge.shutdown()
+            except Exception: pass
+        # Dereference all globals
+        system_db = db = vision_manager = model_manager = None
+        settings = llm_engine = embedding_engine = rag_pipeline = None
+        orchestrator = chat_service = bridge = None
+        print("\n\nAFTER CLEAN", {system_db, db, vision_manager, model_manager, settings,
+              llm_engine, embedding_engine, rag_pipeline,
+              orchestrator, chat_service, bridge})
+
+    def reload_package(package):
+        """Reload all modules in a package recursively."""
+        for loader, name, ispkg in pkgutil.walk_packages(package.__path__, package.__name__ + "."):
+            if name in sys.modules:
+                importlib.reload(sys.modules[name])
+                submod = sys.modules[name]
+                if hasattr(submod, "__path__"):  # recursively reload subpackages
+                    reload_package(submod)
+        importlib.reload(package)
+        
     def reload_qml():
+        engine.clearComponentCache()
         if hasattr(root, "reloadMain"):
             print("🔄 Reloading main.qml only")
             root.reloadMain()
 
     def reload_backend():
-        print("🔄 Reloading backend...")
-        global bridge
+        print("🔄 Hot reloading Python backend...")
+
         if bridge:
-            try: bridge.shutdown()
+            try:
+                bridge.shutdown()
+            except Exception:
+                pass
+
+            # Disconnect signals
+            try:
+                bridge.systemSignal.disconnect()
             except Exception: pass
+            try:
+                bridge.aiSignal.disconnect()
+            except Exception: pass
+
+        clear_backend()
+        import gc
+        gc.collect()
+
+
+        # Reload backend code
         import backend
-        importlib.reload(backend)
+        reload_package(backend)
+        print("\n\nCURENT BACKEND AFTER RELOAD", {system_db, db, vision_manager, model_manager, settings,
+              llm_engine, embedding_engine, rag_pipeline,
+              orchestrator, chat_service, bridge})
+        
+        time.sleep(5)
+
+        # Recreate all backend objects
         create_backend()
+
+        # Update QML context to point to new objects
+        engine.rootContext().setContextProperty("backend", bridge)
+        engine.rootContext().setContextProperty("settings", settings)
+
+        # Reload QML so it reconnects to new backend
         reload_qml()
+
+
 
     watcher.fileChanged.connect(lambda path: reload_backend() if path.endswith(".py") else reload_qml())
     watcher.directoryChanged.connect(lambda path: None)

@@ -50,6 +50,7 @@ class BackendBridge(QObject):
     aiResults = Signal(dict)
 
     newChatCreated = Signal()
+    messagesLoaded = Signal(list)
 
     def __init__(self, current_tasks, settings: Settings, chat_service: ChatService):
         super().__init__()
@@ -93,6 +94,17 @@ class BackendBridge(QObject):
         self.ai_thread.wait()
         self.system_thread.quit()
         self.system_thread.wait()
+
+        # Delete workers explicitly
+        self.system_worker.deleteLater()
+        self.ai_worker.deleteLater()
+        self.system_worker = None
+        self.ai_worker = None
+
+        self.ai_thread.deleteLater()
+        self.system_thread.deleteLater()
+        self.ai_thread = None
+        self.system_thread = None
 
 
     # ============================================================
@@ -144,7 +156,7 @@ class BackendBridge(QObject):
             self.newChatCreated.emit()
         
         self.aiResults.emit({
-            "chat_id": int(results["chat_id"]),
+            "chat_id": int(results.get("chat_id", "")),
             "success": bool(results["success"]),
             "text": str(results.get("text", "")),
             "error": str(results.get("error", ""))
@@ -159,10 +171,12 @@ class BackendBridge(QObject):
         chats = self.ai_worker.chat_service.system_db.get_chats()
         return chats if chats else []
     
-    @Slot(int, result="QVariantList")
+    @Slot(int)
     def getMessages(self, chat_id):
         messages = self.ai_worker.chat_service.system_db.get_messages_by_chat(chat_id)
-        return messages if messages else []
+        print("MESSAGES BRIDGE", messages)
+        self.messagesLoaded.emit(messages if messages else [])
+
 
     
 

@@ -19,7 +19,7 @@ ColumnLayout {
         delegate: Rectangle {
             width: chatList.width
             height: 50
-            color: chatList.currentIndex === index ? "#333" : "#222"
+            color: chatList.currentIndex === index ? '#333' : "#222"
 
             Text {
                 anchors.centerIn: parent
@@ -31,6 +31,8 @@ ColumnLayout {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
+                    console.log("Clicked, index", index)
+                    loadMessages(index)
                     chatList.currentIndex = index
                     root.chatSelected(model.id)
                 }
@@ -45,6 +47,11 @@ ColumnLayout {
         for(let i=0; i<chats.length; i++) {
             chatModel.append(chats[i])
         }
+    }
+
+    function loadMessages(id) {
+        let messages = backend.getMessages(id)
+        // console.log("MESSAGES RETURNED:", messages)
     }
 
     Connections {
