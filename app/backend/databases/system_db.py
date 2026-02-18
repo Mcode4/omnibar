@@ -115,7 +115,8 @@ class SystemDatabase:
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM chats ORDER BY created_at DESC")
         rows = cursor.fetchall()
-        return [dict(r) for r in rows]
+        results = [dict(r) for r in rows]
+        return results
 
     def create_chat(self, title):
         cursor = self.conn.cursor()
@@ -159,7 +160,8 @@ class SystemDatabase:
             (chat_id,)
         )
         rows = cursor.fetchall()
-        return [dict(r) for r in rows]
+        results = [dict(r) for r in rows]
+        return results
 
     def create_message(self, chat_id, role, content):
         cursor = self.conn.cursor()

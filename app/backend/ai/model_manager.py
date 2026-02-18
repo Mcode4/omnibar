@@ -1,12 +1,14 @@
 import os
 from backend.ai.vision_manager import VisionManager
+from backend.settings import Settings
 
 class ModelManager:
-    def __init__(self, vision_manager: VisionManager):
+    def __init__(self, vision_manager: VisionManager, settings: Settings):
         self.models = {}
         self.templates = {}
         self.active_models = set()
         self.vision_model = vision_manager
+        self.settings = settings
 
     def get_model(self, model_name):
         if not model_name in self.active_models:
@@ -23,7 +25,9 @@ class ModelManager:
         
         if model_type == "llama":
             import llama_cpp
-            model = llama_cpp.Llama(model_path=path, **kwargs)
+            model = llama_cpp.Llama(
+                model_path=path, n_ctx=self.settings.get_settings()["model_settings"][name].get("max_context", 4096),
+            **kwargs)
         elif model_type == "vision":
             self.vision_model.load(path)
             model = self.vision_model.model

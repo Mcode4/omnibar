@@ -132,6 +132,7 @@ ColumnLayout {
             }
 
             let current = messageModel.get(streamingIndex)
+            console.log("STREAMING, INDEX: ", 1)
             messageModel.set(streamingIndex, {
                 role: "Omni",
                 content: current.content + token
@@ -139,10 +140,15 @@ ColumnLayout {
         }
 
         function onAiResults(result) {
+            if(!result.no_stream) {
+                console.log("MUST BE NO STREAM", Object(result))
+            }
+
            isThinking = false
            isProcessing = false
 
            if(result.success) {
+            console.log("RESULTS APPENDING, INDEX:", streamingIndex)
             if(streamingIndex === -1) {
                 messageModel.append({
                     role: "Omni",

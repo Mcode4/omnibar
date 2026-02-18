@@ -6,6 +6,7 @@ import QtQuick.Layouts
 ColumnLayout {
     id: root
     signal chatSelected(int chat_id)
+    property int currentId: 0
 
     ListModel { id: chatModel }
 
@@ -31,8 +32,9 @@ ColumnLayout {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    // console.log("Clicked, index", index)
-                    loadMessages(index)
+                    
+                    console.log("Clicked, index", index)
+                    loadMessages(model.id)
                     chatList.currentIndex = index
                     root.chatSelected(model.id)
                 }

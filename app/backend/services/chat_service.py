@@ -53,13 +53,14 @@ class ChatService(QObject):
     # ============================================================
     def _generate_title_async(self, messages, chat_id):
         def worker():
+            system_prompt="""
+                In 5-20 words, create a summary of the chat so for.
+                Add emoji(s) to the front of summary that best fit summary 
+            """
             self.orchestrator.llm.generate(
                 model_name="instruct",
                 messages=messages,
-                system_prompt="""
-                    In 5-20 words, create a summary of the chat so for.
-                    Add emoji(s) to the front of summary that best fit summary 
-                """,
+                system_prompt=system_prompt,
                 source="title"
             )
         def on_title_results(results):
@@ -72,14 +73,16 @@ class ChatService(QObject):
         self.orchestrator.llm.titleSignal.connect(on_title_results)
 
     def _maybe_summarize(self, messages, chat_id):
-        max_messages = self.orchestrator.settings.get_settings().get("max_messages", 12)
+        max_messages = self.orchestrator.settings.get_settings().get("max_messages", 8)
         summarize = self.orchestrator.settings.get_settings().get("summarize_messages", True)
+        print("SUMMARIZED ATTEMPT")
 
         if(len(messages) <= max_messages):
             return messages
         
         def worker():
             if(summarize):
+                print("SUMMARIZING...")
                 self.orchestrator.llm.generate(
                     model_name="instruct",
                     messages=messages,
@@ -91,6 +94,7 @@ class ChatService(QObject):
                 )
         def on_summary_results(results):
             if(results["success"]):
+                print("SUMMARIZING SUCCESS")
                 summarized_text = results["text"]
 
                 self.chat_cache[chat_id] = [{
@@ -134,8 +138,10 @@ class ChatService(QObject):
             chat_id = self._current_chat_id
             sys_msg_id = self.system_db.create_message(chat_id, "assistant", text)
             sys_msg = self.system_db.get_message_by_id(sys_msg_id)
-            self.chat_cache[chat_id].append(sys_msg)
             self._maybe_summarize(self.chat_cache[chat_id], chat_id)
+            self.chat_cache[chat_id].append(sys_msg)
+            if(len(self.chat_cache[chat_id]) == 2):
+                self._generate_title_async(self.chat_cache[chat_id], chat_id)
         
             self.messageFinished.emit({
                 "success": True,

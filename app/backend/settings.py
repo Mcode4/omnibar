@@ -11,7 +11,7 @@ class Settings(QObject):
                 "thinking": {
                     "enabled": True,
                     "max_tokens": 1024,
-                    "max_context": 1024,
+                    "max_context": 4096,
                     "temperature": 0.3,
                     "top_k": 50,
                     "top_p": 0.9,
@@ -21,7 +21,7 @@ class Settings(QObject):
                 },
                 "instruct": {
                     "max_tokens": 1024,
-                    "max_context": 1024,
+                    "max_context": 4096,
                     "temperature": 0.25,
                     "top_k": 50,
                     "top_p": 0.9,

@@ -135,8 +135,6 @@ class UserDatabase:
                 REFERENCES documents(id)
                 ON DELETE CASCADE
         );
-
-
         """)
 
         self.conn.commit()

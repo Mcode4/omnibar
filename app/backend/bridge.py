@@ -35,7 +35,7 @@ class AIWorker(QObject):
     def process(self, request):
         self.started.emit()
         chat_id, prompt = request
-        print(f'CHAT ID: {chat_id} PROMPT: {prompt}')
+        # print(f'CHAT ID: {chat_id} PROMPT: {prompt}')
         self.chat_service.send_message(chat_id, prompt)
 
 
@@ -57,6 +57,7 @@ class BackendBridge(QObject):
         # ================== VARIABLES ==================
         self.current_tasks = current_tasks
         self.settings = settings
+        self.chat_service = chat_service
 
         # ================== QTHREADS ==================
         self.system_thread = QThread()
@@ -149,12 +150,12 @@ class BackendBridge(QObject):
             self.aiSignal.emit(next_task)
         
     def _on_ai_finished(self, results):
-        print("\n\nAI FINISHED SIGNAL RECEIVED\n\n")
+        # print("\n\nAI FINISHED SIGNAL RECEIVED\n\n")
         self.current_tasks["ai"] -= 1
         print(f"\n\nPrompt Complete: {results}")
         
         self.aiResults.emit({
-            "chat_id": int(results.get("chat_id", "")),
+            "chat_id": int(results.get("chat_id")) if results["success"] else "",
             "success": bool(results["success"]),
             "text": str(results.get("text", "")),
             "error": str(results.get("error", ""))
@@ -166,13 +167,14 @@ class BackendBridge(QObject):
     # ============================================================
     @Slot(result="QVariantList")
     def getChats(self):
-        chats = self.ai_worker.chat_service.system_db.get_chats()
+        chats = self.chat_service.system_db.get_chats()
+        # print("CHATS BEFORE BRIDGE: ", chats)
         return chats if chats else []
     
     @Slot(int, result="QVariantList")
     def getMessages(self, chat_id):
-        messages = self.ai_worker.chat_service.system_db.get_messages_by_chat(chat_id)
-        print("MESSAGES BRIDGE", messages)
+        messages = self.chat_service.system_db.get_messages_by_chat(chat_id)
+        # print("MESSAGES BRIDGE", messages, f"CHAT ID:", chat_id)
         self.messagesLoaded.emit(messages if messages else [])
 
     

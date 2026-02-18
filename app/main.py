@@ -118,11 +118,13 @@ def create_backend():
 
     vision_manager = VisionManager(device)
 
-    model_manager = ModelManager(vision_manager)
-    model_manager.load_models_from_config(config)
-
     settings = Settings(model_manager, config)
     settings.load_settings()
+
+    model_manager = ModelManager(vision_manager, settings)
+    model_manager.load_models_from_config(config)
+
+    
 
     llm_engine = LLMEngine(model_manager, settings)
 
@@ -152,6 +154,7 @@ def create_backend():
 
     if DEV_MODE and hasattr(root, "reloadMain"):
         root.reloadMain()
+        gc.collect()
 
     print("✅ Backend ready")
 
@@ -196,6 +199,7 @@ if DEV_MODE:
         system_db = db = vision_manager = model_manager = None
         settings = llm_engine = embedding_engine = rag_pipeline = None
         orchestrator = chat_service = bridge = None
+        gc.collect()
         print("\n\nAFTER CLEAN", {system_db, db, vision_manager, model_manager, settings,
               llm_engine, embedding_engine, rag_pipeline,
               orchestrator, chat_service, bridge})
@@ -205,36 +209,25 @@ if DEV_MODE:
         for loader, name, ispkg in pkgutil.walk_packages(package.__path__, package.__name__ + "."):
             if name in sys.modules:
                 importlib.reload(sys.modules[name])
+                gc.collect()
                 submod = sys.modules[name]
                 if hasattr(submod, "__path__"):  # recursively reload subpackages
                     reload_package(submod)
+                else:
+                    importlib.reload(sys.modules[name])
+                    gc.collect()
         importlib.reload(package)
         
     def reload_qml():
         engine.clearComponentCache()
+        gc.collect()
         if hasattr(root, "reloadMain"):
             print("🔄 Reloading main.qml only")
             root.reloadMain()
 
     def reload_backend():
         print("🔄 Hot reloading Python backend...")
-
-        if bridge:
-            try:
-                bridge.shutdown()
-            except Exception:
-                pass
-
-            # Disconnect signals
-            try:
-                bridge.systemSignal.disconnect()
-            except Exception: pass
-            try:
-                bridge.aiSignal.disconnect()
-            except Exception: pass
-
         clear_backend()
-        import gc
         gc.collect()
 
         # Reload backend code
@@ -243,8 +236,6 @@ if DEV_MODE:
         print("\n\nCURENT BACKEND AFTER RELOAD", {system_db, db, vision_manager, model_manager, settings,
               llm_engine, embedding_engine, rag_pipeline,
               orchestrator, chat_service, bridge})
-        
-        time.sleep(5)
 
         # Recreate all backend objects
         create_backend()
@@ -267,5 +258,5 @@ if DEV_MODE:
 if not engine.rootObjects():
     bridge.shutdown()
     sys.exit(-1)
-    
+
 sys.exit(app.exec())
