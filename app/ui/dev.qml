@@ -74,7 +74,15 @@ Item {
                     }
                 }
                 onLoaded: {
-                    // console.log("loaded")
+                    if(!item) return
+
+                    if (currentPage === 0 && item.chatSelected) {
+                        item.chatSelected.connect(function(chat_id) {
+                            if(mainLoader.item && mainLoader.item.loadMessages) {
+                                mainLoader.item.loadMessages(chat_id)
+                            }
+                        })
+                    }
                 }
 
             }

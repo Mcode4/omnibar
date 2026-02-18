@@ -85,7 +85,7 @@ class BackendBridge(QObject):
         self.ai_worker.tokenGenerated.connect(self.aiToken)
 
         chat_service.messageFinished.connect(self._on_ai_finished)
-        chat_service.chatMessageCreated.connect(self.newChatCreated)
+        chat_service.chatCreated.connect(self.newChatCreated)
 
         # ================== START THREADS ==================
         self.system_thread.start()
@@ -163,7 +163,7 @@ class BackendBridge(QObject):
     @Slot(result="QVariantList")
     def getChats(self):
         chats = self.chat_service.system_db.get_chats()
-        # print("CHATS BEFORE BRIDGE: ", chats)
+        print("CHATS BEFORE BRIDGE: ", chats)
         return chats if chats else []
     
     @Slot(int, result="QVariantList")

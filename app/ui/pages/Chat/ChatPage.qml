@@ -97,7 +97,7 @@ ColumnLayout {
             content: inputField.text
         })
 
-        backend.processAIRequest(chatId, input)
+        ref = backend.processAIRequest(chatId, input)
         inputField.text = ""
     }
 
@@ -143,7 +143,7 @@ ColumnLayout {
             isThinking = false
             isProcessing = false
             if(result.use_stream) return
-            
+
             if(result.success) {
                 console.log("RESULTS ON FINISHED, USE STREAM:", result.use_stream)
                 messageModel.append({
@@ -161,9 +161,9 @@ ColumnLayout {
 
         function onMessagesLoaded(messages) {
             if(messages.length && messages[0].chat_id === chatId) return
+            messageModel.clear()
 
             chatId = messages[0].chat_id
-            messageModel.clear()
             // console.log("MESSAGE RESULTS", messages)
 
             messages.forEach(m => {
@@ -175,4 +175,5 @@ ColumnLayout {
             })
         }
     }
+    Component.onCompleted: ()=> {}
 }

@@ -7,7 +7,7 @@ from backend.ai.orchestrator import Orchestrator
 class ChatService(QObject):
     tokenGenerated = Signal(str, str)
     messageFinished = Signal(dict)
-    chatMessageCreated = Signal()
+    chatCreated = Signal()
 
     def __init__(self, system_db: SystemDatabase, user_db: UserDatabase, orchestrator: Orchestrator):
         super().__init__()
@@ -26,6 +26,7 @@ class ChatService(QObject):
     def send_message(self, chat_id, prompt):
         if not chat_id or chat_id == 0:
             chat_id = self.system_db.create_chat(prompt[:40])
+            self.chatCreated.emit()
 
         history = self.system_db.get_messages_by_chat(chat_id)
         
@@ -34,7 +35,6 @@ class ChatService(QObject):
             
 
         user_msg_id = self.system_db.create_message(chat_id, "user", prompt)
-        self.chatMessageCreated.emit()
         user_msg = self.system_db.get_message_by_id(user_msg_id)
         self.chat_cache[chat_id].append(user_msg)
         self._current_chat_id = chat_id
@@ -63,6 +63,7 @@ class ChatService(QObject):
                 system_prompt=system_prompt,
                 source="title"
             )
+            self.orchestrator.llm.titleSignal.connect(on_title_results)
         def on_title_results(results):
             if results["success"]:
                 self.system_db.edit_chat_title(results["text"], chat_id)
@@ -70,52 +71,42 @@ class ChatService(QObject):
                 print(f"Failed to generate title: {results["error"]}")
         
         threading.Thread(target=worker, daemon=True).start()
-        self.orchestrator.llm.titleSignal.connect(on_title_results)
 
-    def _maybe_summarize(self, messages, chat_id):
-        max_messages = self.orchestrator.settings.get_settings().get("max_messages", 8)
-        summarize = self.orchestrator.settings.get_settings().get("summarize_messages", True)
-        print("SUMMARIZED ATTEMPT")
-
-        if(len(messages) <= max_messages):
-            return messages
+    def _maybe_summarize(self, messages: list):
+        summary_settings = self.orchestrator.settings.get_settings()["summary_settings"]
+        max_messages = summary_settings.get("max_message", 8)
+        if(len(messages) < max_messages): return
         
-        def worker():
-            if(summarize):
-                print("SUMMARIZING...")
-                self.orchestrator.llm.generate(
-                    model_name="instruct",
-                    messages=messages,
-                    system_prompt=f"""
-                        Summarize this conversation clearly and concisely.
-                        Preserve key decisions, facts, and context.
-                        Under {self.orchestrator.llm.compute_budget()["system"]} tokens.
-                    """,
-                    source="summary"
-                )
-        def on_summary_results(results):
-            if(results["success"]):
-                print("SUMMARIZING SUCCESS")
-                summarized_text = results["text"]
+        total_tokens = sum(
+            self.orchestrator.llm.estimate_tokens(m["content"])
+            for m in messages
+        )
+        threshold = summary_settings.get("summary_token_threshold", 2500)
+        if total_tokens < threshold:
+            return
+        to_summarize = messages[:summary_settings.get("keep_fresh", 3)]
 
-                self.chat_cache[chat_id] = [{
-                    "role": "system",
-                    "content": summarized_text
-                }]
+        return self._run_summary(to_summarize)
 
-                summary_embedding = self.orchestrator.rag.embedding_engine.embed(summarized_text)[0]
-                self.user_db.add_memory_with_embedding(
-                    type_="conversation_summary",
-                    category="chat",
-                    content="chat",
-                    embedding=summary_embedding,
-                    importance=2
-                )
-            else:
-                print(f"Summary failed: {results["error"]}")
-
-        threading.Thread(target=worker, daemon=True).start()
-        self.orchestrator.llm.summarySignal.connect(on_summary_results)
+    def _run_summary(self, messages_to_summarize: list):
+        from backend.ai.prompt_builder import PromptBuilder
+        builder = PromptBuilder(self.orchestrator.llm, "instruct")
+        builder.set_system_instructions("""
+            Summarize the following conversation cleary and concisely.
+            Preserve important facts, goals, decisions, and constraints.
+            Do not invent information.
+        """)
+        builder.add_chat_history(messages_to_summarize)
+        final_messages = builder.build(
+            user_message="Create a memory summary of the above converstion"
+        )
+        self.orchestrator.llm.generate(
+            model_name="instruct",
+            messages=final_messages,
+            system_prompt="",
+            source="summary"
+        )
+        
 
     # ============================================================
     #                    TOKEN HANDLING FOR STREAMING
@@ -139,7 +130,7 @@ class ChatService(QObject):
             chat_id = self._current_chat_id
             sys_msg_id = self.system_db.create_message(chat_id, "assistant", text)
             sys_msg = self.system_db.get_message_by_id(sys_msg_id)
-            self._maybe_summarize(self.chat_cache[chat_id], chat_id)
+            self._maybe_summarize(self.chat_cache[chat_id])
             self.chat_cache[chat_id].append(sys_msg)
             if(len(self.chat_cache[chat_id]) == 2):
                 self._generate_title_async(self.chat_cache[chat_id], chat_id)

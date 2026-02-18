@@ -4,6 +4,7 @@ from backend.ai.rag_pipeline import RAGPipeline
 from backend.settings import Settings
 from backend.databases.system_db import SystemDatabase
 from backend.databases.user_db import UserDatabase
+from backend.ai.prompt_builder import PromptBuilder
 
 class Orchestrator:
     def __init__(self, llm_engine: LLMEngine, rag_pipeline: RAGPipeline, settings: Settings, system_db: SystemDatabase, user_db: UserDatabase):
@@ -94,83 +95,71 @@ class Orchestrator:
     # ============================================================
     #                    THINKING PROMPT
     # ============================================================
-    def _handle_generation_finished(self, phase, results, source="chat"):
+    def _handle_generation_finished(self, phase, results):
         if not results["success"]:
             return
         
+        if phase == "summary":
+            if not results["sucess"]:
+                print(f"\n\nSUMMARY FAILED: {results["error"]}\n\n")
+                return
+            summary_text = results["text"]
+            if summary_text.strip():
+                embedding = self.rag.embedding_engine.embed(summary_text)
+                self.user_db.add_memory_with_embedding(
+                    type="summary",
+                    category="conversation",
+                    content=summary_text,
+                    embedding=embedding,
+                    source="ai",
+                    importance=2,
+                    confidence=0.9
+                )
+            return
+        
         if phase == "thinking":
-            budget = self.llm.compute_budget("instruct")
-            reasoning_text = results["text"][:budget["thinking"]]
-
             reasoning_text = results["text"]
-            messages = []
-            chat_tokens = 0 
-            for m in reversed(self._pending_messages):
-                tokens = self.llm.estimate_tokens(m["content"])
-                if chat_tokens + tokens < budget["chat"]:
-                    messages.append({"role": m["role"], "content": m["content"]})
+            builder = PromptBuilder(self.llm, "instruct")
+            builder.set_system_instructions(
+                f"Provide a clear, structed answer in under "
+                f"{self.settings.get_settings()["model_settings"]["instruct"]["max_tokens"]} tokens."
+                f"Do not halllucinate. {self._final_system_prompt}"
+            )
 
-            retrieved = self.rag.retrieve(messages)
+            # Chat history
+            builder.add_chat_history(self._pending_messages)
 
-            context = "\n\nRelevant Context:\n "
+            # RAG
+            retrieved = self.rag.retrieve(self._pending_messages)
             if retrieved:
-                rag_token_budget = budget["rag"]
-                rag_tokens = 0
-                for chunk in retrieved:
-                    chunk_tokens = self.llm.estimate_tokens(chunk["text"])
-                    if rag_tokens + chunk_tokens > rag_token_budget:
-                        break
-                    context += chunk["text"] + "\n"
-                    rag_tokens += chunk_tokens
+                builder.add_rag(chunk["text"] for chunk in retrieved)
 
-                for chunk in retrieved:
-                    context += chunk["text"] + "\n"
-
+            # Memory
             query_embedding = self.rag.embedding_engine.embed(
-                messages[-1]["content"]
+                self._pending_messages[-1]["content"]
             )
-
-            memories = self.user_db.search_memory_by_embedding(
+            summary_memories = self.user_db.search_memory_by_embedding(
                 query_embedding,
-                limit=3
+                limit=2,
+                type_filter=("summary")
             )
-
-            memory_context = ""
-            for m in memories:
-                if self.llm.estimate_tokens(memory_context + m["content"]) < budget["memory"]:
-                    memory_context += f"- {m['content']}\n"
+            fact_memories = self.user_db.search_memory_by_embedding(
+                query_embedding,
+                limit=3,
+                type_filters=("fact")
+            )
+            builder.add_memory([m["content"] for m in summary_memories + fact_memories])
             
-            conversation_context = ""
-            for m in messages:
-                if self.llm.estimate_tokens(conversation_context + m["content"]) < budget["system"]:
-                    conversation_context += f"{m['role']}: {m['content']}"
+            # Reasoning
+            builder.set_reasoning(reasoning_text)
 
-            final_prompt = f"""
-            Long-Term Memory:
-            {memory_context[:600]}
-
-            Recent Conversation:
-            {conversation_context}
-
-            Key Reasoning:
-            {reasoning_text}
-
-            Relevant Context:
-            {context}
-
-            Provide a clear structured answer in under {self.settings.get_settings()["model_settings"]["instruct"].get("max_tokens", 512)} tokens.
-            Do not hallucinate
-            """
-            print("\n--- FINAL PROMPT ---\n")
-            print(final_prompt)
-            print("\n--------------------\n")
+            final_messages = builder.build(
+                user_message=self._pending_messages[-1]["content"]
+            )
 
             self.llm.generate(
                 model_name="instruct",
-                messages=[
-                    {"role": "system", "content": final_prompt},
-                    {"role": "user", "content": messages[0]["content"]},
-                ],
-                system_prompt=self._final_system_prompt,
-                source=source
+                messages=final_messages,
+                system_prompt="",
+                source="chat"
             )

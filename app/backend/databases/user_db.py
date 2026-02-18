@@ -201,13 +201,19 @@ class UserDatabase:
             self.conn.rollback()
             return{"success": False, "error": str(e)}
         
-    def search_memory_by_embedding(self, query_embedding, limit=5):
+    def search_memory_by_embedding(self, query_embedding, limit=5, type_filter=None):
         cursor = self.conn.cursor()
-        cursor.execute("""
+        query = """
             SELECT id, content, embedding, importance, decay_score
             FROM memory
             WHERE embedding IS NOT NULL
-        """)
+        """
+        params = []
+        if type_filter:
+            query += " AND type = ?"
+            params.append(type_filter)
+
+        cursor.execute(query, params)
         rows = cursor.fetchall()
         results = []
 

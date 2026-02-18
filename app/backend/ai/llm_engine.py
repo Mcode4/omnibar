@@ -19,9 +19,11 @@ class LLMEngine(QObject):
         generate_settings = self.settings.get_settings()["generate_settings"]
         use_stream = generate_settings.get("streamer", True)
 
+        if system_prompt:
+            messages = [{"role": "system", "content": system_prompt}] + messages
+
         messages = self.trim_messages_to_budget(
             messages,
-            system_prompt,
             max_context = model_settings.get("max_context", 4096),
             max_tokens = model_settings.get("max_tokens", 512)
         )
@@ -106,7 +108,7 @@ class LLMEngine(QObject):
         elif source == "title":
             self.titleSignal.emit(results)
         elif source == "summary":
-            self.summarySignal.emit(results)
+            self.generation_finished.emit(source, results)
         else:
             print("UNKNOWN SOURCE: ", source)
         
@@ -116,15 +118,14 @@ class LLMEngine(QObject):
     def estimate_tokens(self, text: str) -> int:
         return int(len(text.split()) * 1.3)
     
-    def trim_messages_to_budget(self, messages, system_propmt, max_context, max_tokens):
-        print("TRIMMING", {
-            "mesages": messages,
-            "system_propmt": system_propmt,
-            "max_context": max_context,
-            "max_tokens": max_tokens
-        })
+    def trim_messages_to_budget(self, messages, max_context, max_tokens):
+        # print("TRIMMING", {
+        #     "mesages": messages,
+        #     "max_context": max_context,
+        #     "max_tokens": max_tokens
+        # })
         budget = max_context - max_tokens
-        total = self.estimate_tokens(system_propmt)
+        total = 0
 
         trimmed = []
 

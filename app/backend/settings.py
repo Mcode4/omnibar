@@ -47,8 +47,11 @@ class Settings(QObject):
                 "system_tasks": 2,
                 "async_tasks": 1
             },
-            "max_messages": 12,
-            "summarize_messages": True,
+            "summary_settings": {
+                "max_messages": 8,
+                "keep_fresh": 3, # Out of "max_message" keep (amount) fresh
+                "summary_token_threshold": 2500
+            },
             "error_popups": True
         }
 

@@ -49,6 +49,15 @@ ColumnLayout {
         for(let i=0; i<chats.length; i++) {
             chatModel.append(chats[i])
         }
+
+        Qt.callLater(function() {
+            chatList.currentIndex = 0
+            chatList.positionViewAtIndex(0, ListView.Beginning)
+
+            let firstChat = chatModel.get(0)
+            root.currentId = firstChat.id
+            root.chatSelected(firstChat.id)
+        })
     }
 
     function loadMessages(id) {
@@ -63,6 +72,5 @@ ColumnLayout {
             loadChats()
         }
     }
-
     Component.onCompleted: loadChats()
 }
