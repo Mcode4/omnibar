@@ -1,20 +1,19 @@
-# Omnibar Roadmap
+# OmniManager Roadmap (Current Version: v0.1)
 
-This document outlines the planned direction for Omnibar.
+This document outlines the planned direction for OmniManager.
 It is a living document and may change as the project evolves.
 
 ---
 
-## v0.1 - Plasma Beta (Core MVP)
+## v0.1 - OM Beta (Core MVP)
 
-Goal: A clear, usable, local-first desktop command bar for KDE Plasma.
+Goal: A clear, usable, local-first AI chat UI and note manager
 
 Planned:
-- Core AI assistant service
-- Application launching
-- Local file search
-- Flatpak packaging
-- Local configuration storage
+- Core AI assistant - chat and thinking
+- Embeddings for memory context
+- Function databases for application settings and user/ai memory
+- Usuable chats, notes, database, logs, and settings page
 
 Out of scope:
 - Voice input
@@ -28,7 +27,22 @@ Considerations:
 
 ---
 
-## v0.2 - Usability & Expansion
+## v0.2 - Vision & Tools
+
+Goal: Add vision and tool logic to notes and LLM workflow
+
+Planned
+- Adding vision model logic to the notes page
+- Giving the llms identity, thinking with purpose
+- Defining tools available to the llm
+
+Out of scope:
+- Page dedicated for image refining (Comfy UI, etc)
+- API requests
+
+---
+
+## v0.3 - Usability & Expansion
 
 Planned:
 - Improved natural language understanding
@@ -43,6 +57,7 @@ Planned:
 
 Planned:
 - Stable API for frontends
+- Flatpak packaging
 - Optional premium features
 - Licensing support (local-only)
 - Expanded documentation
@@ -51,10 +66,9 @@ Planned:
 
 ## Future Considerations
 
-- GNOME frontend
-- Other desktop environments
+- Speech-to-text and text-to-speech
+- Packaging for other OS 
 - Automation workflows
 - Optional local LLM support
-- Support searching categories to find app (e.g. "Browser" → Firefox, Chrome)
 
 No guarantees are made for future features.
