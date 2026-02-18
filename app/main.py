@@ -1,5 +1,10 @@
-import sys
 import os
+import PySide6
+
+qt_path = os.path.join(os.path.dirname(PySide6.__file__), "Qt", "lib")
+os.environ["LD_LIBRARY_PATH"] = qt_path
+
+import sys
 import yaml
 import importlib
 import argparse

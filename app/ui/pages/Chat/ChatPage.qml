@@ -37,9 +37,9 @@ ColumnLayout {
                 font.pixelSize: 14
 
                 Component.onCompleted: {
-                    console.log("ROLE:", role)
-                    console.log("CONTENT:", content)
-                    console.log("TYPE:", typeof content)
+                    // console.log("ROLE:", role)
+                    // console.log("CONTENT:", content)
+                    // console.log("TYPE:", typeof content)
                 }
 
                 // TextArea {
@@ -132,7 +132,7 @@ ColumnLayout {
             }
 
             let current = messageModel.get(streamingIndex)
-            console.log("STREAMING, INDEX: ", 1)
+            // console.log("STREAMING, INDEX: ", 1)
             messageModel.set(streamingIndex, {
                 role: "Omni",
                 content: current.content + token
@@ -140,37 +140,35 @@ ColumnLayout {
         }
 
         function onAiResults(result) {
-            if(!result.no_stream) {
-                console.log("MUST BE NO STREAM", Object(result))
-            }
+            isThinking = false
+            isProcessing = false
+                if(result.use_stream) return
 
-           isThinking = false
-           isProcessing = false
+            
 
-           if(result.success) {
-            console.log("RESULTS APPENDING, INDEX:", streamingIndex)
-            if(streamingIndex === -1) {
+            if(result.success) {
+                // console.log("RESULTS APPENDING, INDEX:", streamingIndex)
+                if(streamingIndex === -1) {
+                    messageModel.append({
+                        role: "Omni",
+                        content: result.text
+                    })
+                } 
+            } else {
                 messageModel.append({
                     role: "Omni",
-                    content: result.text
+                    content: "Error: " + result.error
                 })
-            } 
-           } else {
-            messageModel.append({
-                role: "Omni",
-                content: "Error: " + result.error
-            })
-           }
-           streamingIndex = -1
-        }
+            }
+            streamingIndex = -1
+            }
 
         function onMessagesLoaded(messages) {
+            if(messages.length && messages[0].chat_id === chatId) return
+
+            chatId = messages[0].chat_id
             messageModel.clear()
             // console.log("MESSAGE RESULTS", messages)
-
-            if(messages.length && messages[0].chat_id) {
-                chatId = messages[0].chat_id
-            }
 
             messages.forEach(m => {
                 // console.log("MESSAGEEEEEE", m)

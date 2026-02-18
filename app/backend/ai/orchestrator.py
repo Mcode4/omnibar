@@ -104,10 +104,11 @@ class Orchestrator:
 
             reasoning_text = results["text"]
             messages = []
-            for m in self._pending_messages:
-                message_token = 0 
-                if self.llm.estimate_tokens(message_token + m["content"]) < budget["chat"]:
-                    messages.append({"role": m["role", "content": m["content"]]})
+            chat_tokens = 0 
+            for m in reversed(self._pending_messages):
+                tokens = self.llm.estimate_tokens(m["content"])
+                if chat_tokens + tokens < budget["chat"]:
+                    messages.append({"role": m["role"], "content": m["content"]})
 
             retrieved = self.rag.retrieve(messages)
 

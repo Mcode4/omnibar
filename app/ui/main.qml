@@ -74,7 +74,7 @@ Item {
                     }
                 }
                 onLoaded: {
-                    console.log("loaded")
+                    // console.log("loaded")
                 }
 
             }

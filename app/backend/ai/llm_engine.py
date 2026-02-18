@@ -15,15 +15,15 @@ class LLMEngine(QObject):
 
     def generate(self, model_name: str, messages: list, system_prompt: str, source: str, phase="instruct"):
         model = self.model_manager.get_model(model_name)
-        model_settings = self.settings.get_settings()["model_settings"]
+        model_settings = self.settings.get_settings()["model_settings"][model_name]
         generate_settings = self.settings.get_settings()["generate_settings"]
         use_stream = generate_settings.get("streamer", True)
 
         messages = self.trim_messages_to_budget(
             messages,
             system_prompt,
-            max_context = model_settings[model_name].get("max_context", 4096),
-            max_tokens = model_settings[model_name].get("max_tokens", 512)
+            max_context = model_settings.get("max_context", 4096),
+            max_tokens = model_settings.get("max_tokens", 512)
         )
 
         if not model:
@@ -69,6 +69,7 @@ class LLMEngine(QObject):
                         full_response += token
                         self.token_generated.emit(phase, token)
             else:
+
                 output = model.create_chat_completion(
                     messages=messages,
                     max_tokens=model_settings.get("max_tokens", 512),
@@ -81,8 +82,9 @@ class LLMEngine(QObject):
                     stream=False
                 )
                 full_response = output["choices"][0]["message"]["content"]
- 
-            prompt_tokens = self.estimate_tokens(m["content"] for m in messages)
+
+            prompt_text = "".join(m["content"] for m in messages)
+            prompt_tokens = self.estimate_tokens(prompt_text)
             completion_tokens = self.estimate_tokens(full_response)
 
             results = {
@@ -91,7 +93,7 @@ class LLMEngine(QObject):
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
                 "total_tokens": prompt_tokens + completion_tokens,
-                "no_stream": True
+                "use_stream": use_stream
             }
 
         except Exception as e:
@@ -115,6 +117,12 @@ class LLMEngine(QObject):
         return int(len(text.split()) * 1.3)
     
     def trim_messages_to_budget(self, messages, system_propmt, max_context, max_tokens):
+        print("TRIMMING", {
+            "mesages": messages,
+            "system_propmt": system_propmt,
+            "max_context": max_context,
+            "max_tokens": max_tokens
+        })
         budget = max_context - max_tokens
         total = self.estimate_tokens(system_propmt)
 
@@ -127,13 +135,14 @@ class LLMEngine(QObject):
             trimmed.insert(0, msg)
             total += tokens
 
+        print("TRIMMED", trimmed)
         return trimmed
     
     def compute_budget(self, model_name):
-        settings = self.settings.get_settings()["model_settings"][model_name]
-        context_size = settings.get("content_size", 4096)
-        max_output = settings.get("max_token", 512)
-        available = context_size - max_output
+        model_settings = self.settings.get_settings()["model_settings"][model_name]
+        max_context = model_settings.get("max_context", 4096)
+        max_tokens = model_settings.get("max_tokens", 512)
+        available = max_context - max_tokens
 
         return {
             "system": int(available * 0.05),

@@ -16,7 +16,7 @@ ApplicationWindow {
     }
 
     function reloadMain() {
-        console.log("🔄 Reloading dev.qml only")
+        // console.log("🔄 Reloading dev.qml only")
         devLoader.source = ""
         devLoader.source = "dev.qml?t=" + Date.now()
     }

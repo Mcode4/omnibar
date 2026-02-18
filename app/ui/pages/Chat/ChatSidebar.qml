@@ -33,7 +33,7 @@ ColumnLayout {
                 anchors.fill: parent
                 onClicked: {
                     
-                    console.log("Clicked, index", index)
+                    // console.log("Clicked, index", index)
                     loadMessages(model.id)
                     chatList.currentIndex = index
                     root.chatSelected(model.id)

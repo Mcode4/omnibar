@@ -20,7 +20,7 @@ class ModelManager:
     # ============================================================
     def load_model(self, name: str, path: str, model_type="llama", **kwargs):
         if name in self.models:
-            print(f"{name} already loaded")
+            # print(f"{name} already loaded")
             return self.models[name]
         
         if model_type == "llama":
@@ -40,7 +40,7 @@ class ModelManager:
         self.templates[name] = (path, model_type)
         self.models[name] = model
         self.active_models.add(name)
-        print(f"{name} loaded")
+        # print(f"{name} loaded")
         return model
     
     def reload_model(self, model_name, **kwargs):
@@ -48,9 +48,7 @@ class ModelManager:
             print(f"Model: {model_name} isn't loaded")
             return
         
-        print(f'KWARGS {kwargs}')
         self.unload_model(model_name)
-        print(f"ACTIVE MODELS: {self.active_models}")
 
         path, model_type = self.templates[model_name]
         self.load_model(model_name, path, model_type, **kwargs)

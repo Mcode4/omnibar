@@ -115,7 +115,7 @@ class BackendBridge(QObject):
     @Slot(str)
     def processSystemCommand(self, text: str):
         text = text.strip()
-        print(f"Command received from UI: {text}")
+        # print(f"Command received from UI: {text}")
         self.system_queue.append(text)
         self._try_process_next()
 
@@ -138,7 +138,7 @@ class BackendBridge(QObject):
     @Slot(int, str)
     def processAIRequest(self, chat_id: int, prompt: str):
         self.ai_queue.append((chat_id, prompt))
-        print(f"Prompt received from UI at Chat ID({chat_id}): {prompt}")
+        # print(f"Prompt received from UI at Chat ID({chat_id}): {prompt}")
         self._try_process_next_ai()
 
     def _try_process_next_ai(self):
