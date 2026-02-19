@@ -5,6 +5,7 @@ from backend.settings import Settings
 from backend.databases.system_db import SystemDatabase
 from backend.databases.user_db import UserDatabase
 from backend.ai.prompt_builder import PromptBuilder
+from backend.ai.identity_manager import IdentityManager
 
 class Orchestrator:
     def __init__(self, llm_engine: LLMEngine, rag_pipeline: RAGPipeline, settings: Settings, system_db: SystemDatabase, user_db: UserDatabase):
@@ -73,10 +74,12 @@ class Orchestrator:
     #                    PROMPT TO AI
     # ============================================================
     def _fast_flow(self, messages: list, system_prompt="You are a helpful assistant.", source="chat"):
+        identity = IdentityManager()
+        identity_text = identity.get_identity()
         self.llm.generate(
             model_name="instruct",
             messages=messages[-6:],
-            system_prompt=system_prompt,
+            system_prompt=identity.get_identity() + "\n" + system_prompt,
             source=source
         )
     
@@ -119,7 +122,8 @@ class Orchestrator:
         
         if phase == "thinking":
             reasoning_text = results["text"]
-            builder = PromptBuilder(self.llm, "instruct")
+            identity = IdentityManager()
+            builder = PromptBuilder(self.llm, "instruct", identity_text=identity.get_identity())
             builder.set_system_instructions(
                 f"Provide a clear, structed answer in under "
                 f"{self.settings.get_settings()["model_settings"]["instruct"]["max_tokens"]} tokens."
@@ -141,12 +145,12 @@ class Orchestrator:
             summary_memories = self.user_db.search_memory_by_embedding(
                 query_embedding,
                 limit=2,
-                type_filter=("summary")
+                type_filter="summary"
             )
             fact_memories = self.user_db.search_memory_by_embedding(
                 query_embedding,
                 limit=3,
-                type_filters=("fact")
+                type_filter="fact"
             )
             builder.add_memory([m["content"] for m in summary_memories + fact_memories])
             

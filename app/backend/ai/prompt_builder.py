@@ -1,10 +1,12 @@
 from backend.ai.llm_engine import LLMEngine
+from backend.ai.identity_manager import IdentityManager
 
 class PromptBuilder:
-    def __init__(self, llm_engine: LLMEngine, model_name: str):
+    def __init__(self, llm_engine: LLMEngine, model_name: str, identity_text: str = ""):
         self.llm = llm_engine
         self.model_name = model_name
         self.budget = self.llm.compute_budget(model_name)
+        self.identity_text = identity_text
 
         self._memory_blocks = []
         self._rag_blocks = []
@@ -71,6 +73,9 @@ class PromptBuilder:
     # ============================================================
     def build(self, user_message: str):
         system_sections = []
+
+        if self.identity_text:
+            system_sections.append(self.identity_text)
 
         if self._memory_blocks:
             system_sections.append(
