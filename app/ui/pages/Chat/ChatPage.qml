@@ -10,9 +10,9 @@ ColumnLayout {
     property bool aiStreaming: false
     property bool isThinking: false
     property bool isProcessing: false
-
     property int streamingIndex: -1
     property int chatId: 0
+    
 
     // Chat Log
     ScrollView {
@@ -35,19 +35,6 @@ ColumnLayout {
 
                 font.family: "Segoe UI, Noto Color Emoji, Arial"
                 font.pixelSize: 14
-
-                Component.onCompleted: {
-                    // console.log("ROLE:", role)
-                    // console.log("CONTENT:", content)
-                    // console.log("TYPE:", typeof content)
-                }
-
-                // TextArea {
-                //     id: chatLog
-                //     readOnly: true
-                //     wrapMode: Text.Wrap
-                //     text: ""
-                // }
             }
         }
     }
@@ -102,6 +89,11 @@ ColumnLayout {
     }
 
     function loadMessages(id) {
+        if(id === -1) {
+            messageModel.clear()
+            chatId = 0
+            return
+        }
         let messages = backend.getMessages(id)
         // console.log("MESSAGES RETURNED:", messages)
     }
@@ -160,7 +152,7 @@ ColumnLayout {
             }
 
         function onMessagesLoaded(messages) {
-            if(messages.length && messages[0].chat_id === chatId) return
+            if(!messages || messages.length === 0) return
             messageModel.clear()
 
             chatId = messages[0].chat_id

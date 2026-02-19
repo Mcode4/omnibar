@@ -131,19 +131,23 @@ def create_backend():
 
     
 
-    llm_engine = LLMEngine(model_manager, settings)
-
     embedding_engine = EmbeddingEngine(
         next((m for m in config.get("models", []) if m.get("backend") == "embedding"), None)
     )
 
     rag_pipeline = RAGPipeline(db, embedding_engine, settings)
+    llm_engine = LLMEngine(model_manager, settings, orchestrator)
 
     orchestrator = Orchestrator(
-        llm_engine, rag_pipeline, settings, system_db, user_db=db
+        llm_engine, rag_pipeline, settings, system_db, user_db=db, chat_service=chat_service
     )
+    
+
+    
 
     chat_service = ChatService(system_db, db, orchestrator)
+
+    
 
     # Shutdown old bridge if exists
     if bridge:

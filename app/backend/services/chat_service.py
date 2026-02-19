@@ -25,17 +25,16 @@ class ChatService(QObject):
     # ============================================================
     def send_message(self, chat_id, prompt):
         if not chat_id or chat_id == 0:
-            chat_id = self.system_db.create_chat(prompt[:40])
+            chat_id = self.system_db.create_chat(prompt[:25])
             self.chatCreated.emit()
-
-        history = self.system_db.get_messages_by_chat(chat_id)
-        
-        if chat_id not in self.chat_cache:
-            self.chat_cache[chat_id] = history
-            
 
         user_msg_id = self.system_db.create_message(chat_id, "user", prompt)
         user_msg = self.system_db.get_message_by_id(user_msg_id)
+
+        if chat_id not in self.chat_cache:
+            history = self.system_db.get_messages_by_chat(chat_id)
+            self.chat_cache[chat_id] = list(history)
+
         self.chat_cache[chat_id].append(user_msg)
         self._current_chat_id = chat_id
 
@@ -46,7 +45,7 @@ class ChatService(QObject):
             "history": history
         })
 
-        self.orchestrator.run(prompt, self.chat_cache[chat_id])
+        self.orchestrator.run(prompt, self.chat_cache[chat_id], chat_id=chat_id)
 
     # ============================================================
     #                    ASSISTING CHAT WITH AI
@@ -116,7 +115,14 @@ class ChatService(QObject):
         stream_thinking = True if stream_when == "both" or stream_when == "thinking" else False
         stream_instruct = True if stream_when == "both" or stream_when == "instruct" else False
 
+        print("STREAMING IMPORTANCE", {
+            "phase": phase,
+            "token": token,
+            "stream_thinking": stream_thinking,
+            "streaming_instruct": stream_instruct
+        })
         if (phase == "thinking" and stream_thinking) or (phase == "instruct" and stream_instruct):
+            print("EMITTING")
             self.tokenGenerated.emit(phase, token)
 
     def _handle_finished(self, phase, results):
@@ -124,7 +130,7 @@ class ChatService(QObject):
             self.messageFinished.emit(results)
             return
         
-        if phase == "instruct":
+        if phase == "instruct" or phase == "tool":
             text = results["text"]
 
             chat_id = self._current_chat_id
@@ -144,3 +150,11 @@ class ChatService(QObject):
                 "total_tokens": results["total_tokens"],
                 "use_stream": results["use_stream"]
             })
+
+    def get_messages(self, chat_id: int = None, message: dict = None):
+        if message:
+            if not chat_id:
+                print("no chat_id")
+            else:
+                self.chat_cache[chat_id].append(message)
+        return self.chat_cache[chat_id]

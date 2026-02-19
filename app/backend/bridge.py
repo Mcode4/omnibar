@@ -169,8 +169,13 @@ class BackendBridge(QObject):
     @Slot(int, result="QVariantList")
     def getMessages(self, chat_id):
         messages = self.chat_service.system_db.get_messages_by_chat(chat_id)
-        # print("MESSAGES BRIDGE", messages, f"CHAT ID:", chat_id)
+        print("MESSAGES BRIDGE", messages, f"CHAT ID:", chat_id)
         self.messagesLoaded.emit(messages if messages else [])
+
+    @Slot(int)
+    def remove_chat(self, chat_id):
+        removed_chat = self.chat_service.system_db.delete_chat(chat_id)
+        print(f"\n\n\nREMOVED CHAT: {removed_chat} CHAT ID: {chat_id}\n\n\n")
 
     
 

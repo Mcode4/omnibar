@@ -1,3 +1,4 @@
+import os
 from PySide6.QtCore import QObject, Slot
 
 class Settings(QObject):
@@ -51,6 +52,18 @@ class Settings(QObject):
                 "max_messages": 8,
                 "keep_fresh": 3, # Out of "max_message" keep (amount) fresh
                 "summary_token_threshold": 2500
+            },
+            "tool_settings": {
+                "search_files": {
+                    "active": True,
+                    "max_results": 10,
+                    "search_path": os.path.expanduser("~"),
+                    "can_search_sub_directories": True
+                },
+                "web_search": {
+                    "active": True,
+                    "live_view": True
+                }
             },
             "error_popups": True
         }
