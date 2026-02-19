@@ -97,7 +97,7 @@ ColumnLayout {
             content: inputField.text
         })
 
-        ref = backend.processAIRequest(chatId, input)
+        backend.processAIRequest(chatId, input)
         inputField.text = ""
     }
 

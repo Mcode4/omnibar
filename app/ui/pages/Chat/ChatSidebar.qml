@@ -68,9 +68,6 @@ ColumnLayout {
     Connections {
         target: backend
 
-        function onNewChatCreated() {
-            loadChats()
-        }
     }
     Component.onCompleted: loadChats()
 }
