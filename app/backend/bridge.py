@@ -24,7 +24,7 @@ class AIWorker(QObject):
     tokenGenerated = Signal(str, str, int)
     finished = Signal(dict)
 
-    chatCreated = Signal(int)
+    chatCreated = Signal(int, str)
     messagesLoaded = Signal(list)
 
     chatData = Signal(list)
@@ -204,7 +204,7 @@ class BackendBridge(QObject):
     modelTooling = Signal(int)
     phaseState = Signal(dict)
 
-    chatCreated = Signal(int)
+    chatCreated = Signal(int, str)
 
     chatAction = Signal(tuple)
     chatsData = Signal(list)

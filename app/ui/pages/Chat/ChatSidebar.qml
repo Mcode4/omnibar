@@ -48,6 +48,7 @@ ColumnLayout {
             height: 30
             onClicked: {
                 backend.chatActions("get")
+
             }
 
             Text {
@@ -88,8 +89,8 @@ ColumnLayout {
                     onClicked: {
                         chatList.currentIndex = index
                         root.currentId = model.id
-                        // root.chatSelected(model.id)
-                        root.loadMessages(model.id)
+                        root.chatSelected(model.id)
+                        // root.loadMessages(model.id)
                     }
 
                     Text {
@@ -112,29 +113,12 @@ ColumnLayout {
                         
                         console.log("CHAT", chat)
                         backend.chatActions("delete", chat.id)
-                        // backend.remove_chat(chat.id)
                         chatModel.remove(index, 1)
                     }
                 }
             }
         }
     }
-
-    // function loadChats(check) {
-    //     if (!check) return
-    //     chatModel.clear()
-
-    //     let chats = backend.getChats()
-    //     for(let i=0; i<chats.length; i++) {
-    //         console.log("CHATS APPENDING", chats[i])
-    //         console.log("APPENDING CHATS")
-    //         chatModel.append(chats[i])
-    //     }
-
-    //     Qt.callLater(function() {
-    //         focusToCurrentChat()
-    //     })
-    // }
 
     function focusToCurrentChat() {
         chatList.currentIndex = 0
@@ -145,6 +129,7 @@ ColumnLayout {
         console.log("FOCUSED ID: ", firstChat.id)
         root.chatSelected(firstChat.id)
         return firstChat.id
+        
     }
 
     function loadMessages(chatId) {
@@ -169,9 +154,24 @@ ColumnLayout {
             })
         }
         
+        function onChatCreated(chatId, title) {
+            console.log('CURRENT ID BEFORE:', currentId, "CHAT ID:", chatId)
+            chatModel.remove(0)
+            chatModel.insert(0, {
+                id: chatId,
+                title: title
+            })
+            currentId = chatId
+            console.log('CURRENT ID AFTER:', currentId, "CHAT ID:", chatId)
+
+            Qt.callLater(function() {
+                
+                focusToCurrentChat()
+            })
+            
+        }
     }
-    Component.onCompleted: { 
-        // loadChats(true)
+    Component.onCompleted: {
         backend.chatActions("get")
     }
 }

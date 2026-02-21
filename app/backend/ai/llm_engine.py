@@ -6,11 +6,12 @@ from backend.tools.tool_registry import get_available_tools
 
 class LLMEngine(QObject):
     tokenGenerated = Signal(str, str, int)
+    generationFinished = Signal(str, dict, dict)
+
     modelThinking = Signal(int)
     modelTooling = Signal(int)
 
     titleSignal = Signal(dict, int)
-    generationFinished = Signal(str, dict, dict)
     toolSignal = Signal(int, list)
 
     def __init__(self, model_manager: ModelManager, settings: Settings):
@@ -147,6 +148,7 @@ class LLMEngine(QObject):
             if "content" in delta:
                 token = delta["content"]
                 full_response += token
+                print(f"\nSTREAMING, PHASE:{phase}, TOKEN:{token}, CHAT ID:{chat_id}")
                 self.tokenGenerated.emit(phase, token, chat_id)
 
             if "tool_calls" in delta:

@@ -94,16 +94,20 @@ ColumnLayout {
         inputField.text = ""
     }
 
-    
+    function loadMessages(chatId) {
+        streamingIndex = -1
+        console.log("BEFORE LOADING MESSAGES ID:", chatPage.chatId)
+        chatPage.chatId = chatId
+        console.log("LOADING ID:", chatId, "CHAT ID NOW:", chatPage.chatId)
+        if(chatId === -1) {
+            messageModel.clear()
+            return
+        }
+        backend.messageActions("get", chatId)
+    }
 
-    // function loadMessages(id) {
-    //     chatPage.chatId = id
-    //     console.log("LOADING ID:", id, "CHAT ID NOW:", chatPage.chatId)
-    //     if(id === -1) {
-    //         messageModel.clear()
-    //         return
-    //     }
-    //     backend.messageActions("get", id)
+    // function updateNewChat(chatId) {
+    //     newChat = messageModel.get(0)
     // }
 
     // Backend Connections
@@ -112,14 +116,11 @@ ColumnLayout {
 
         // Loading
         function onMessagesData(messages) {
-            console.log("\n\n\nLOADED MESSAGES\n\n\n")
-            if(
-                !messages || 
-                messages.length === 0 || 
-                // ChatState.streamIndex(chatId) !== -1
-                ChatState.streamTokens(chatId) !== ""
-            ) return
+            // console.log("\n\n\nLOADED MESSAGES\n\n\n")
+            if(!messages) return
             messageModel.clear()
+            // if(messages[1].chat_id) chatPage.chatId = messages[1].chat_id 
+            // else chatPage.chatId = messages[0].chat_id 
             // console.log("MESSAGE RESULTS", messages)
 
             messages.forEach(m => {
@@ -159,11 +160,11 @@ ColumnLayout {
         }
 
         // Streaming and Responses
-        function onAiToken(phase, token, chat_id) {
-            console.log("TOKEN RECEIVED:", token, "CHAT:", chat_id)
-            let existing = ChatState.streamTokens(chat_id) || ""
-            let updated = existing + token
-            ChatState.setStreamTokens(chat_id, updated)
+        function onAiTokens(phase, token, chat_id) {
+            // console.log("TOKEN RECEIVED:", token, "CHAT:", chat_id)
+            // let existing = ChatState.streamTokens(chat_id) || ""
+            // let updated = existing + token
+            // ChatState.setStreamTokens(chat_id, updated)
 
             // let index = ChatState.streamIndex(chat_id)
 
@@ -179,17 +180,24 @@ ColumnLayout {
 
             if (streamingIndex === -1) {
                 console.log("INDEX === -1", streamingIndex)
+                // messageModel.append({
+                //     role: "Omni",
+                //     content: updated
+                // })
                 messageModel.append({
                     role: "Omni",
-                    content: updated
+                    content: token
                 })
 
                 streamingIndex = messageModel.count - 1
-                ChatState.setStreamIndex(chat_id, streamingIndex)
+                // ChatState.setStreamIndex(chat_id, streamingIndex)
                 console.log("INDEX SET TO LAST MODEL INDEX", streamingIndex)
                 return
             }
 
+            
+            let existing = messageModel.get(streamingIndex).content
+            let updated = existing + token
             console.log(`MESSAGES APPENDING: INDEX: ${streamingIndex} CONTENT: ${updated}`)
             messageModel.set(streamingIndex, {
                 role: "Omni",

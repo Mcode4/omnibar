@@ -3,7 +3,7 @@ from backend.databases.system_db import SystemDatabase
 from backend.ai.orchestrator import Orchestrator
 
 class ChatService(QObject):
-    chatCreated = Signal(int)
+    chatCreated = Signal(int, str)
 
     def __init__(self, system_db: SystemDatabase, orchestrator: Orchestrator):
         super().__init__()
@@ -19,7 +19,7 @@ class ChatService(QObject):
     def send_message(self, chat_id, prompt):
         if not chat_id or chat_id <= 0:
             chat_id = self.system_db.create_chat(prompt[:25])
-            self.chatCreated.emit(chat_id)
+            self.chatCreated.emit(chat_id, prompt[:25])
 
         user_msg_id = self.system_db.create_message(chat_id, "user", prompt)
         user_msg = self.system_db.get_message_by_id(user_msg_id)

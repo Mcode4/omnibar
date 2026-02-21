@@ -90,6 +90,14 @@ Item {
                                 }
                             })
                         })
+
+                        // item.onChatCreated.connect(function(chat_id) {
+                        //     Qt.callLater(function () {
+                        //         if (mainLoader.item && mainLoader.item.updateNewChat) {
+                        //             mainLoader.item.updateNewChat(chat_id)
+                        //         }
+                        //     })
+                        // })
                     }
                 }
 
