@@ -41,28 +41,38 @@ class ChatState(QObject):
         self._thinking[chat_id] = value
         self._processing[chat_id] = False
         self._tooling[chat_id] = False
+
         self.stateChanged.emit(chat_id)
+        return self._thinking[chat_id]
 
     @Slot(int, bool)
     def setProcessing(self, chat_id, value):
         self._processing[chat_id] = value
         self._thinking[chat_id] = False
         self._tooling[chat_id] = False
+
         self.stateChanged.emit(chat_id)
+        return self._processing[chat_id]
 
     @Slot(int, bool)
     def setTooling(self, chat_id, value):
         self._tooling[chat_id] = value
         self._thinking[chat_id] = False
         self._processing[chat_id] = False
+
         self.stateChanged.emit(chat_id)
+        return self._tooling[chat_id]
 
     @Slot(int, str)   
     def setStreamTokens(self, chat_id, value):
         self._stream_tokens[chat_id] = value
-        self.stateChanged.emit(chat_id)
+
+        # self.stateChanged.emit(chat_id)
+        return self._stream_tokens[chat_id]
 
     @Slot(int, int)
     def setStreamIndex(self, chat_id, value):
         self._stream_index[chat_id] = value
-        self.stateChanged.emit(chat_id)
+
+        # self.stateChanged.emit(chat_id)
+        return self._stream_index[chat_id]
