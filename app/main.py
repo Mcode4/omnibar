@@ -116,54 +116,67 @@ def create_backend():
     print("🚀 Creating backend...")
 
     db_paths = config.get("databases", {})
-    system_db = SystemDatabase(
-        db_paths.get("system", os.path.expanduser("~/.local/share/omnimanager/system.db"))
-    )
-    db = Database(
-        db_paths.get("user", os.path.expanduser("~/.local/share/omnimanager/system.db"))
-    )
+    
 
     vision_manager = VisionManager(device)
-
-    settings = Settings(model_manager, config)
-    settings.load_settings()
-
-    model_manager = ModelManager(vision_manager, settings)
-    model_manager.load_models_from_config(config)
-
     
 
     embedding_engine = EmbeddingEngine(
         next((m for m in config.get("models", []) if m.get("backend") == "embedding"), None)
     )
 
-    rag_pipeline = RAGPipeline(db, embedding_engine, settings)
-    llm_engine = LLMEngine(model_manager, settings)
+def create_backend():
+    global bridge, chat_state
 
-    orchestrator = Orchestrator(
-        llm_engine, rag_pipeline, settings, db, chat_service=chat_service
+    print("🚀 Creating backend...")
+
+    db_paths = config.get("databases", {})
+
+    vision_manager = VisionManager(device)
+
+    embedding_engine = EmbeddingEngine(
+        next((m for m in config.get("models", []) if m.get("backend") == "embedding"), None)
     )
-    
-    chat_state = ChatState()
-    chat_service = ChatService(system_db, orchestrator)
 
-    
+    def build_services():
+        system_db = SystemDatabase(
+            db_paths.get("system", os.path.expanduser("~/.local/share/omnimanager/system.db"))
+        )
 
-    # Shutdown old bridge if exists
+        user_db = Database(
+            db_paths.get("user", os.path.expanduser("~/.local/share/omnimanager/system.db"))
+        )
+
+        settings = Settings(None, config, system_db)
+        settings.load_settings()
+
+        model_manager = ModelManager(vision_manager, settings)
+        model_manager.load_models_from_config(config)
+        settings.model_manager = model_manager
+
+        rag_pipeline = RAGPipeline(user_db, embedding_engine, settings)
+
+        return {
+            "current_tasks": current_tasks,
+            "settings": settings,
+            "system_db": system_db,
+            "user_db": user_db,
+            "model_manager": model_manager,
+            "rag_pipeline": rag_pipeline
+        }
+
     if bridge:
         try:
             bridge.shutdown()
         except Exception:
             pass
 
-    bridge = BackendBridge(current_tasks, settings, system_db, db, model_manager, rag_pipeline)
+    bridge = BackendBridge(build_services)
+
+    chat_state = ChatState()
 
     engine.rootContext().setContextProperty("backend", bridge)
     engine.rootContext().setContextProperty("ChatState", chat_state)
-
-    if DEV_MODE and hasattr(root, "reloadMain"):
-        root.reloadMain()
-        gc.collect()
 
     print("✅ Backend ready")
 

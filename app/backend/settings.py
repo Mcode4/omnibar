@@ -1,13 +1,23 @@
 import os
-from PySide6.QtCore import QObject, Slot
+import json
+from PySide6.QtCore import QObject, Slot, Signal
 
 class Settings(QObject):
-    def __init__(self, model_manager, config):
+    settingsChanged = Signal()
+    unsavedChanges = Signal(bool)
+
+    def __init__(self, model_manager, config, system_db):
         super().__init__()
         self.model_manager = model_manager
         self.config = config
+        self.db = system_db
 
         self._settings = {
+            "user_settings": {
+                "name": "Mcode4",
+                "timezone": "UTC",
+                "primary_language": "English"
+            },
             "model_settings": {
                 "thinking": {
                     "enabled": True,
@@ -33,11 +43,17 @@ class Settings(QObject):
             },
             "generate_settings": {
                 "streamer": True,
-                "use_md": True, # Planned
                 "use_emojis": False, # Planned
                 # "stream_when": "thinking, instruct, or both"
             },
+            "rag_settings": {
+                "enabled": True,
+                "weight": 0.7,
+                "rerank": True,
+                "min_score": 0.3
+            },
             "embedding_settings": {
+                "enabled": True,
                 "top_max_embedding_scan": 5,
                 "chunk_size": 512,
                 "overlap": 50
@@ -57,6 +73,8 @@ class Settings(QObject):
                     "active": True,
                     "max_results": 10,
                     "search_path": os.path.expanduser("~"),
+                    "restricted_paths": [],
+                    "max_file_size_mb": 20,
                     "can_search_sub_directories": True
                 },
                 "web_search": {
@@ -64,15 +82,76 @@ class Settings(QObject):
                     "live_view": True
                 }
             },
-            "error_popups": True
+            "ui": {
+                "theme": "light", # light mode
+                "font-size": 14,
+                "markdown": True
+            },
+            "error_popups": True,
+            "debug": {
+                "log_phases": True,
+                "log_tokens": True,
+                "log_rag": True,
+                "log_tools": True,
+                "save_log_to_file": False,
+                "log_file_location": ""
+            }
         }
 
-    def load_settings(self):
-        # Cleanly access db and load all saved setting values
-        return
-    
+        self._pending_changes = {}
+
     def get_settings(self):
         return self._settings
+
+    def load_settings(self):
+        raw = self.db.get_setting("settings_json")
+        if not raw:
+            return
+        loaded = json.loads(raw)
+        self.settingsChanged.emit()
+        return self._deep_update(self._settings, loaded)
+    
+    def _deep_update(self, base, updates):
+        for key, value in updates.items():
+            if isinstance(value, dict) and key in base:
+                self._deep_update(base[key], value)
+            else:
+                base[key] = value
+
+    def save_settings(self):
+        if self._pending_changes:
+            for path, value in self._pending_changes.items():
+                self._set(path, value)
+
+            self.db.set_settings("settings_json", json.dumps(self._settings))
+            self._pending_changes.clear()
+            self.settingsChanged.emit()
+            self.unsavedChanges.emit(False)
+        return
+    
+    @Slot(str, result="QVariant")
+    def get(self, path):
+        keys = path.split(".")
+        value = self._settings
+        for key in keys:
+            value = value.get(key, None)
+            if value is None:
+                return None
+        return value
+    
+    @Slot(str, "QVariant")
+    def pre_set(self, path, value):
+        self._pending_changes[path] = value
+        self.unsavedChanges.emit(True)
+    
+    @Slot(str, "QVariant")
+    def _set(self, path, value):
+        keys = path.split(".")
+        ref = self._settings
+        for key in keys[:-1]:
+            ref = ref.setdefault(key, {})
+        ref[keys[-1]] = value
+        return
 
     @Slot(str, bool)
     def toggle_model(self, model_name: str, enabled: bool):

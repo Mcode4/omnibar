@@ -3,6 +3,7 @@ import json
 from collections import deque
 from PySide6.QtCore import QObject, Slot, Signal, QThread
 from backend.command_router import CommandRouter
+# from backend.services.app_services import AppServices
 
 
 class SystemWorker(QObject):
@@ -214,16 +215,17 @@ class BackendBridge(QObject):
     messagesData = Signal(list)
     messageActionsFinished = Signal()
 
-    def __init__(self, current_tasks, settings, system_db, user_db, model_manager, rag_pipeline):
+    def __init__(self, app_services):
         super().__init__()
         # ================== VARIABLES ==================
-        self.current_tasks = current_tasks
-        self.settings = settings
-        self.system_db = system_db
-        self.user_db = user_db
-        self.model_manager = model_manager
-        self.rag_pipeline = rag_pipeline
-        # self.chat_service = chat_service
+        self.app_services = app_services()
+
+        self.current_tasks = self.app_services["current_tasks"]
+        self.settings = self.app_services["settings"]
+        self.system_db = self.app_services["system_db"]
+        self.user_db = self.app_services["user_db"]
+        self.model_manager = self.app_services["model_manager"]
+        self.rag_pipeline = self.app_services["rag_pipeline"]
 
         # ================== QTHREADS ==================
         self.system_thread = QThread()
@@ -294,7 +296,6 @@ class BackendBridge(QObject):
         self.system_thread = None
 
         self.phase_state = {}
-
 
     # ============================================================
     #                    SYSTEM PROCESSES
@@ -367,3 +368,21 @@ class BackendBridge(QObject):
             print("forwarding message action...")
             self.messageAction.emit((action, id, data))
     
+    # ============================================================
+    #                    SETTINGS PROCESSES
+    # ============================================================
+    @Slot(str, result="QVariant")
+    def getSetting(self, path):
+        return self.settings.get(path)
+    
+    @Slot(str, "QVariant")
+    def setSettings(self, path, value):
+        self.settings.pre_set(path, value)
+
+    @Slot()
+    def saveSettings(self):
+        self.settings.save_settings()
+
+    @Slot()
+    def reloadSettings(self):
+        self.settings.load_settings()
